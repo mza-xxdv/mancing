@@ -4543,7 +4543,7 @@ SecShop:NewButton("Astral Rod - $1M", "Purchase Astral Rod", function()
     buyRod(rodDatabase.astral)
 end)
 
-SecShop:NewButton("Ares Rod - $2.5M", "Purchase Ares Rod (NEW!)", function()
+SecShop:NewButton("Ares Rod - $3M", "Purchase Ares Rod (NEW!)", function()
     buyRod(rodDatabase.ares)
 end)
 
