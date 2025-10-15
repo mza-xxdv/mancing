@@ -1,4 +1,33 @@
-
+--[[
+    ╔═══════════════════════════════════════════════════════════════════════════╗
+    ║                     V3.3 MAXIMUM VRAM OPTIMIZATION                        ║
+    ║                  Auto Fish Script with Extreme VRAM Saving                ║
+    ╠═══════════════════════════════════════════════════════════════════════════╣
+    ║  Version: 3.3 VRAM                                                        ║
+    ║  Based on: v3.2 efisien.lua                                               ║
+    ║  Date: 2025-10-15                                                         ║
+    ╠═══════════════════════════════════════════════════════════════════════════╣
+    ║  NEW FEATURES IN V3.3:                                                    ║
+    ║  ✅ RunService:Set3dRenderingEnabled(false) - Disable 3D rendering       ║
+    ║  ✅ Force all materials to Plastic (lightest material)                   ║
+    ║  ✅ Remove all textures, decals, and SurfaceAppearances                  ║
+    ║  ✅ Destroy all particles and special effects                            ║
+    ║  ✅ Optimize all mesh textures (remove texture IDs)                      ║
+    ║  ✅ Master VRAM optimization function (applyMaximumVRAMOptimization)     ║
+    ║  ✅ Persistent VRAM optimization through GPU Saver toggle                ║
+    ║  ✅ Workspace 3D cleanup disabled (game loading stability)               ║
+    ║                                                                            ║
+    ║  EXPECTED VRAM REDUCTION: 30-50%                                          ║
+    ║  TRADE-OFF: Game will look extremely minimal/blank                        ║
+    ╠═══════════════════════════════════════════════════════════════════════════╣
+    ║  INHERITED FROM V3.2:                                                     ║
+    ║  ✅ Auto Artifact farming system with UUID detection                     ║
+    ║  ✅ Totem detection & equip via "Totems" category                        ║
+    ║  ✅ Memory leak fixes (removed FPS counter, ping monitor, etc)           ║
+    ║  ✅ Exact match detection for artifacts                                  ║
+    ║  ✅ Conditional Auto Artifact execution                                  ║
+    ╚═══════════════════════════════════════════════════════════════════════════╝
+]]
 
 -- ====== SCRIPT INITIALIZATION SAFETY CHECK ======
 
@@ -555,10 +584,6 @@ do
             ["Giant Squid"] = true,
             ["Ghost Shark"] = true,
             ["Robot Kraken"] = true,
-            ["Bone Whale"] = true,
-            ["Elshark Gran Maja"] = true,
-            ["Worm Fish"] = true,
-            ["Mosasaur Shark"] = true,
             ["Thin Armor Shark"] = true,
             ["Arrow Artifact"] = true,
             ["Crescent Artifact"] = true,
@@ -3115,7 +3140,7 @@ setupFishTracking()
 
 local teleportLocations = {
     { Name = "Kohana Volcano", CFrame = CFrame.new(-572.879456, 22.4521465, 148.355331, -0.995764792, -6.67705606e-08, 0.0919371247, -5.74611505e-08, 1, 1.03905414e-07, -0.0919371247, 9.81825394e-08, -0.995764792) },
-    { Name = "Sisyphus Statue",  CFrame = CFrame.new(1831.71362, 6.62499952, -299.279175, 0.213522509, 1.25553285e-07, -0.976938128, -4.32026184e-08, 1, 1.19074642e-07, 0.976938128, 1.67811702e-08, 0.213522509) },
+    { Name = "Sisyphus Statue",  CFrame = CFrame.new(1466.92151, -21.8750591, -622.835693, -0.764787138, 8.14444334e-09, 0.644283056, 2.31097452e-08, 1, 1.4791004e-08, -0.644283056, 2.6201187e-08, -0.764787138) },
     { Name = "Coral Reefs",  CFrame = CFrame.new(-3114.78198, 1.32066584, 2237.52295, -0.304758579, 1.6556676e-08, -0.952429652, -8.50574935e-08, 1, 4.46003305e-08, 0.952429652, 9.46036067e-08, -0.304758579) },
     { Name = "Esoteric Depths",  CFrame = CFrame.new(3248.37109, -1301.53027, 1403.82727, -0.920208454, 7.76270355e-08, 0.391428679, 4.56261056e-08, 1, -9.10549289e-08, -0.391428679, -6.5930152e-08, -0.920208454) },
     { Name = "Crater Island",  CFrame = CFrame.new(1016.49072, 20.0919304, 5069.27295, 0.838976264, 3.30379857e-09, -0.544168055, 2.63538391e-09, 1, 1.01344115e-08, 0.544168055, -9.93662219e-09, 0.838976264) },
@@ -3126,7 +3151,6 @@ local teleportLocations = {
     { Name = "Treasure Room",  CFrame = CFrame.new(-3606.34985, -266.57373, -1580.97339, 0.998743415, 1.12141152e-13, -0.0501160324, -1.56847693e-13, 1, -8.88127842e-13, 0.0501160324, 8.94872392e-13, 0.998743415) },
     { Name = "Kohana",  CFrame = CFrame.new(-663.904236, 3.04580712, 718.796875, -0.100799225, -2.14183729e-08, -0.994906783, -1.12300391e-08, 1, -2.03902459e-08, 0.994906783, 9.11752096e-09, -0.100799225) },
     { Name = "Underground Cellar", CFrame = CFrame.new(2108.71606, -94.1875076, -709.647827, 0.508109629, 1.18704779e-08, -0.861292422, -1.60964764e-09, 1, 1.28325759e-08, 0.861292422, -5.13397813e-09, 0.508109629) },
-    { Name = "Ancient Jungle", CFrame = CFrame.new(1831.71362, 6.62499952, -299.279175, 0.213522509, 1.25553285e-07, -0.976938128, -4.32026184e-08, 1, 1.19074642e-07, 0.976938128, 1.67811702e-08, 0.213522509) },
     { Name = "Sacred Temple", CFrame = CFrame.new(1466.92151, -21.8750591, -622.835693, -0.764787138, 8.14444334e-09, 0.644283056, 2.31097452e-08, 1, 1.4791004e-08, -0.644283056, 2.6201187e-08, -0.764787138) }
 }
 
@@ -4807,39 +4831,25 @@ end
 --                    AUTO LOOPS (CORE FISHING LOGIC)
 -- ====================================================================
 
--- Enhanced Auto Farm Loop (Concurrent Flow)
+-- Enhanced Auto Farm Loop (combines equip + fishing)
 task.spawn(function()
     while true do
         if isAutoFarmOn then
             local success, err = pcall(function()
-                -- Concurrently equip and charge, then sequentially request minigame
-                
-                -- 1. Equip Tool (Concurrent)
-                task.spawn(function()
-                    if equipEvent then
-                        equipEvent:FireServer(1)
+                -- Check if rod is equipped
+                local character = player.Character
+                if character then
+                    local tool = character:FindFirstChildOfClass("Tool")
+                    if not tool then
+                        equipRod()
+                        task.wait(1)
                     end
-                end)
-                
-                -- 2. Charge Rod (Concurrent)
-                task.spawn(function()
-                    if chargeEvent then
-                        chargeEvent:InvokeServer(1755848498.4834)
-                    end
-                end)
-
-                -- Wait for concurrent tasks to fire off
-                task.wait(0.02) 
-
-                -- 3. Request Minigame (Sequential)
-                if requestMinigameEvent then
-                    requestMinigameEvent:InvokeServer(1.2854545116425, 1)
                 end
 
-                -- Wait for server to process all requests
+                -- Perform fishing sequence
+                chargeFishingRod()
                 task.wait(autoFishMainDelay)
 
-                -- 4. Complete Fishing
                 if fishingEvent then
                     fishingEvent:FireServer()
                 end
