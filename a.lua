@@ -572,7 +572,7 @@ local defaultConfig = {
     autoMegalodon = false,
     activePreset = "none",
     gpuSaver = false,
-    teleportLocation = "Sisyphus Statue",
+    teleportLocation = "Sacred Temple",
     chargeFishingDelay = 0.01,
     autoFishDelay = 0.9,
     autoSellDelay = 45,
@@ -1761,6 +1761,7 @@ setupFishTracking()
 local teleportLocations = {
     { Name = "Kohana Volcano", CFrame = CFrame.new(-572.879456, 22.4521465, 148.355331, -0.995764792, -6.67705606e-08, 0.0919371247, -5.74611505e-08, 1, 1.03905414e-07, -0.0919371247, 9.81825394e-08, -0.995764792) },
     { Name = "Sisyphus Statue",  CFrame = CFrame.new(-3728.21606, -135.074417, -1012.12744, -0.977224171, 7.74980258e-09, -0.212209702, 1.566994e-08, 1, -3.5640408e-08, 0.212209702, -3.81539813e-08, -0.977224171) },
+    { Name = "Sacred Temple",  CFrame = CFrame.new(1509.05, -22.13, -640.93) },
     { Name = "Coral Reefs",  CFrame = CFrame.new(-3114.78198, 1.32066584, 2237.52295, -0.304758579, 1.6556676e-08, -0.952429652, -8.50574935e-08, 1, 4.46003305e-08, 0.952429652, 9.46036067e-08, -0.304758579) },
     { Name = "Esoteric Depths",  CFrame = CFrame.new(3248.37109, -1301.53027, 1403.82727, -0.920208454, 7.76270355e-08, 0.391428679, 4.56261056e-08, 1, -9.10549289e-08, -0.391428679, -6.5930152e-08, -0.920208454) },
     { Name = "Crater Island",  CFrame = CFrame.new(1016.49072, 20.0919304, 5069.27295, 0.838976264, 3.30379857e-09, -0.544168055, 2.63538391e-09, 1, 1.01344115e-08, 0.544168055, -9.93662219e-09, 0.838976264) },
@@ -1777,8 +1778,8 @@ local function teleportToNamedLocation(targetName)
         return
     end
 
-    if targetName == "Sisyphus State" then
-        targetName = "Sisyphus Statue"
+    if targetName == "Sacred Temple" then
+        targetName = "Sacred Temple"
     end
 
     pcall(function()
@@ -2184,7 +2185,7 @@ local function resumeFarmingAfterMegalodon(previousAutoFarmState)
         task.wait(1) -- Wait a moment before resuming
 
         -- Teleport back to original farming location
-        local farmLocation = config.teleportLocation or "Sisyphus Statue"
+        local farmLocation = config.teleportLocation or "Sacred Temple"
         teleportToNamedLocation(farmLocation)
         task.wait(2)
 
@@ -3401,7 +3402,7 @@ if configExists then
     useAutoWeather = config.autoWeather
     useAutoMegalodon = config.autoMegalodon
     useGPUSaver = config.gpuSaver
-    useTeleportLoc = config.teleportLocation or "Sisyphus Statue"
+    useTeleportLoc = config.teleportLocation or "Sacred Temple"
 
     -- Apply delays from config (using applyDelayConfig)
     applyDelayConfig()
@@ -3413,7 +3414,7 @@ else
     useAutoWeather = AUTO_WEATHER or false
     useAutoMegalodon = AUTO_MEGALODON or false
     useGPUSaver = GPU_SAVER or false
-    useTeleportLoc = TELEPORT_LOCATION or "Sisyphus Statue"
+    useTeleportLoc = TELEPORT_LOCATION or "Sacred Temple"
 
     -- Apply delays from main_noui.lua
     chargeFishingDelay = CHARGE_ROD_DELAY or 0.1
