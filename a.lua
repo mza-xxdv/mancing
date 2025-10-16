@@ -266,15 +266,11 @@ end
 local function cleanupEnvironment()
     print("[VRAM Optimizer] 🧹 Cleaning up environment...")
 
-    -- 1. delete remote ini
-    pcall(function()
-        local remote = game:GetService("ReplicatedStorage").Packages._Index["sleitnick_net@0.2.0"].net:FindFirstChild("RE/ObtainedNewFishNotification")
-        if remote then
-            remote:Destroy()
-        end
-    end)
+    -- IMPORTANT: DO NOT delete ObtainedNewFishNotification remote!
+    -- This remote is CRITICAL for v9.1 event-driven farm system
+    -- Removing it will break the auto farm functionality completely
 
-    -- 2. delete path ini
+    -- 1. delete path ini
     pcall(function()
         if workspace.CurrentCamera then
              workspace.CurrentCamera:Destroy()
@@ -2549,9 +2545,44 @@ HOTBAR_SLOT = 2 -- Slot hotbar untuk equip tool (global)
 
 local function getNetworkEvents()
     local success, result = pcall(function()
-        local packages = replicatedStorage:WaitForChild("Packages", 10)
-        local net = packages:WaitForChild("_Index", 10):WaitForChild("sleitnick_net@0.2.0", 10):WaitForChild("net", 10)
-        
+        local packages = replicatedStorage:WaitForChild("Packages", 15)
+        local net = packages:WaitForChild("_Index", 15):WaitForChild("sleitnick_net@0.2.0", 15):WaitForChild("net", 15)
+
+        -- Get ObtainedNewFishNotification with extended timeout and retry logic
+        local newFishNotificationEvent = nil
+        local attempts = 0
+        local maxAttempts = 30  -- Try for up to 30 seconds
+
+        while not newFishNotificationEvent and attempts < maxAttempts do
+            newFishNotificationEvent = net:FindFirstChild("RE/ObtainedNewFishNotification")
+            if not newFishNotificationEvent then
+                -- Debug: List all available events on first attempt
+                if attempts == 0 then
+                    print("[Network Events] 🔍 Debugging: Listing all children in net folder...")
+                    for _, child in ipairs(net:GetChildren()) do
+                        print("[Network Events]   - " .. child.Name)
+                    end
+                end
+
+                print("[Network Events] Waiting for ObtainedNewFishNotification event... (attempt " .. (attempts + 1) .. "/" .. maxAttempts .. ")")
+                task.wait(1)
+                attempts = attempts + 1
+            end
+        end
+
+        if not newFishNotificationEvent then
+            warn("[Network Events] ⚠️ ObtainedNewFishNotification event not found after " .. maxAttempts .. " seconds!")
+            warn("[Network Events] Event-driven farm will NOT work. Please check if the event exists in the game.")
+
+            -- Final debug: List all events again
+            print("[Network Events] 🔍 Final check - all children in net folder:")
+            for _, child in ipairs(net:GetChildren()) do
+                print("[Network Events]   - " .. child.Name)
+            end
+        else
+            print("[Network Events] ✅ ObtainedNewFishNotification event found successfully!")
+        end
+
         return {
             fishingEvent = net:WaitForChild("RE/FishingCompleted", 10),
             sellEvent = net:WaitForChild("RF/SellAllItems", 10),
@@ -2568,10 +2599,12 @@ local function getNetworkEvents()
             equipItemEvent = net:WaitForChild("RE/EquipItem", 10),
             equipBaitEvent = net:WaitForChild("RE/EquipBait", 10),
             -- For Totem Purchase Only (placement is manual)
-            purchaseMarketItemEvent = net:WaitForChild("RF/PurchaseMarketItem", 10)
+            purchaseMarketItemEvent = net:WaitForChild("RF/PurchaseMarketItem", 10),
+            -- For Event-Driven Farm System (v9.1)
+            newFishNotificationEvent = newFishNotificationEvent  -- Use the event we found (or nil if not found)
         }
     end)
-    
+
     if success then
         return result
     else
@@ -3125,7 +3158,7 @@ local teleportLocations = {
     { Name = "Tropical Grove",  CFrame = CFrame.new(-2095.34106, 197.199997, 3718.08008) },
     { Name = "Treasure Room",  CFrame = CFrame.new(-3606.34985, -266.57373, -1580.97339, 0.998743415, 1.12141152e-13, -0.0501160324, -1.56847693e-13, 1, -8.88127842e-13, 0.0501160324, 8.94872392e-13, 0.998743415) },
     { Name = "Kohana",  CFrame = CFrame.new(-663.904236, 3.04580712, 718.796875, -0.100799225, -2.14183729e-08, -0.994906783, -1.12300391e-08, 1, -2.03902459e-08, 0.994906783, 9.11752096e-09, -0.100799225) },
-    { Name = "Underground Cellar", CFrame = CFrame.new(2108.71606, -94.1875076, -709.647827, 0.508109629, 1.18704779e-08, -0.861292422, -1.60964764e-09, 1, 1.28325759e-08, 0.861292422, -5.13397813e-09, 0.508109629) },
+    { Name = "Underground Cellar", CFrame = CFrame.new(2109.52148, -94.1875076, -708.609131, 0.418592364, 3.34794485e-08, -0.908174217, -5.24141512e-08, 1, 1.27060247e-08, 0.908174217, 4.22825366e-08, 0.418592364) },
     { Name = "Ancient Jungle", CFrame = CFrame.new(1831.71362, 6.62499952, -299.279175, 0.213522509, 1.25553285e-07, -0.976938128, -4.32026184e-08, 1, 1.19074642e-07, 0.976938128, 1.67811702e-08, 0.213522509) },
     { Name = "Sacred Temple", CFrame = CFrame.new(1466.92151, -21.8750591, -622.835693, -0.764787138, 8.14444334e-09, 0.644283056, 2.31097452e-08, 1, 1.4791004e-08, -0.644283056, 2.6201187e-08, -0.764787138) }
 }
@@ -4760,19 +4793,22 @@ local function startManualConfig()
     task.wait(3)  -- Wait for everything to load
 
     -- Teleport first
+    print("[Startup] Teleporting to " .. tostring(useTeleportLoc))
     teleportToNamedLocation(useTeleportLoc)
-    task.wait(2)
+    task.wait(3)  -- Increased wait time after teleport for character to stabilize
 
     -- Enable GPU Saver if configured
     if useGPUSaver then
+        print("[Startup] Enabling GPU Saver")
         enableGPUSaver()
         task.wait(0.5)
     end
 
     -- Enable Auto Farm if configured
     if useAutoFarm then
+        print("[Startup] Starting Auto Farm (event-driven system)")
         setAutoFarm(true)
-        task.wait(0.5)
+        task.wait(1)  -- Give farm system time to initialize
     end
 
     -- Enable Auto Sell if configured
@@ -4807,54 +4843,164 @@ end
 --                    AUTO LOOPS (CORE FISHING LOGIC)
 -- ====================================================================
 
--- Enhanced Auto Farm Loop (Concurrent Flow)
-task.spawn(function()
-    while true do
-        if isAutoFarmOn then
-            local success, err = pcall(function()
-                -- Concurrently equip and charge, then sequentially request minigame
-                
-                -- 1. Equip Tool (Concurrent)
-                task.spawn(function()
-                    if equipEvent then
-                        equipEvent:FireServer(1)
-                    end
-                end)
-                
-                -- 2. Charge Rod (Concurrent)
-                task.spawn(function()
-                    if chargeEvent then
-                        chargeEvent:InvokeServer(1755848498.4834)
-                    end
-                end)
+-- ====== EVENT-DRIVEN AUTO FARM SYSTEM (v9.1) ======
+-- Replaces delay-based loop with event-driven approach for better efficiency
 
-                -- Wait for concurrent tasks to fire off
-                task.wait(0.02) 
+local newFishConnection = nil
+local spamCompletedThread = nil
 
-                -- 3. Request Minigame (Sequential)
-                if requestMinigameEvent then
-                    requestMinigameEvent:InvokeServer(1.2854545116425, 1)
-                end
+-- Forward declaration
+local farmCycle = nil
 
-                -- Wait for server to process all requests
-                task.wait(autoFishMainDelay)
+-- Event Handler: Triggered when new fish is caught
+local function onNewFish()
+    -- Stop previous spam thread to prevent overlap
+    if spamCompletedThread then
+        task.cancel(spamCompletedThread)
+        spamCompletedThread = nil
+    end
 
-                -- 4. Complete Fishing
-                if fishingEvent then
-                    fishingEvent:FireServer()
-                end
-            end)
+    -- Brief delay before starting next cycle
+    task.wait(0.1)
 
-            if not success then
-                if not (string.find(tostring(err):lower(), "asset is not approved") or
-                       string.find(tostring(err):lower(), "failed to load sound")) then
-                    warn("[Auto Farm] Loop error: " .. tostring(err))
-                end
+    -- Start next cycle if farm is still active
+    if isAutoFarmOn then
+        farmCycle()
+    end
+end
+
+-- Main Farm Cycle (runs once per fish)
+farmCycle = function()
+    if not isAutoFarmOn then
+        print("[v9.1 Farm Cycle] Skipped - farm is not active")
+        return
+    end
+
+    print("[v9.1 Farm Cycle] Starting new cycle...")
+
+    -- Stop previous spammer for cleanliness
+    if spamCompletedThread then
+        task.cancel(spamCompletedThread)
+        spamCompletedThread = nil
+    end
+
+    -- 1. Initial Signals (sent once per cycle)
+    local signalSuccess = pcall(function()
+        -- Check if rod is equipped
+        local character = player.Character
+        if character then
+            local tool = character:FindFirstChildOfClass("Tool")
+            if not tool then
+                print("[v9.1 Farm Cycle] No rod equipped - equipping...")
+                equipRod()
+                task.wait(0.5)
+            else
+                print("[v9.1 Farm Cycle] Rod already equipped: " .. tool.Name)
             end
         end
+
+        -- Send fishing signals concurrently
+        print("[v9.1 Farm Cycle] Sending equip signal...")
+        task.spawn(function() if equipEvent then equipEvent:FireServer(1) end end)
+        task.wait(0.01)
+
+        print("[v9.1 Farm Cycle] Sending charge signal...")
+        task.spawn(function() if chargeEvent then chargeEvent:InvokeServer(1755848498.4834) end end)
+        task.wait(0.01)
+
+        print("[v9.1 Farm Cycle] Sending request minigame signal...")
+        task.spawn(function() if requestMinigameEvent then requestMinigameEvent:InvokeServer(1.2854545116425, 1) end end)
+    end)
+
+    if not signalSuccess then
+        warn("[v9.1 Farm Cycle] Failed to send initial signals")
+    end
+
+    -- 2. Start spam thread for FishingCompleted
+    print("[v9.1 Farm Cycle] Starting FishingCompleted spam thread...")
+    spamCompletedThread = task.spawn(function()
+        local spamCount = 0
+        while isAutoFarmOn do
+            if fishingEvent then
+                fishingEvent:FireServer()
+                spamCount = spamCount + 1
+                if spamCount % 5 == 0 then  -- Log every 5 spams
+                    print("[v9.1 Farm Cycle] FishingCompleted sent (" .. spamCount .. " times)")
+                end
+            end
+            task.wait(0.4) -- Spam interval
+        end
+    end)
+end
+
+-- Event-Driven Farm Control
+local function startEventDrivenFarm()
+    if newFishConnection then
+        print("[v9.1 Auto Farm] Already running, skipping restart")
+        return
+    end
+
+    print("[v9.1 Auto Farm] Starting event-driven farm system...")
+
+    -- Connect to ObtainedNewFishNotification event
+    if networkEvents and networkEvents.newFishNotificationEvent then
+        newFishConnection = networkEvents.newFishNotificationEvent.OnClientEvent:Connect(onNewFish)
+        print("[v9.1 Auto Farm] ✅ Event listener connected successfully to ObtainedNewFishNotification")
+    else
+        warn("[v9.1 Auto Farm] ❌ CRITICAL: ObtainedNewFishNotification event not found!")
+        warn("[v9.1 Auto Farm] The event-driven system cannot work without this event.")
+        warn("[v9.1 Auto Farm] Possible causes:")
+        warn("[v9.1 Auto Farm]   1. Event was destroyed by cleanup function")
+        warn("[v9.1 Auto Farm]   2. Event doesn't exist in this game version")
+        warn("[v9.1 Auto Farm]   3. Event takes too long to spawn (increase timeout)")
+        warn("[v9.1 Auto Farm] Farm will NOT auto-restart after each fish!")
+        return
+    end
+
+    -- Start first cycle
+    print("[v9.1 Auto Farm] Starting first cycle...")
+    farmCycle()
+end
+
+local function stopEventDrivenFarm()
+    print("[v9.1 Auto Farm] Stopping event-driven farm system...")
+
+    -- Disconnect event listener
+    if newFishConnection then
+        newFishConnection:Disconnect()
+        newFishConnection = nil
+    end
+
+    -- Stop spam thread
+    if spamCompletedThread then
+        task.cancel(spamCompletedThread)
+        spamCompletedThread = nil
+    end
+end
+
+-- Monitor isAutoFarmOn state and control event-driven farm
+task.spawn(function()
+    local wasAutoFarmOn = isAutoFarmOn
+    print("[v9.1 Auto Farm] Monitor loop started. Initial state: " .. tostring(isAutoFarmOn))
+
+    while true do
+        if isAutoFarmOn and not wasAutoFarmOn then
+            -- Farm was just enabled
+            print("[v9.1 Auto Farm] State changed to ON - starting event-driven farm")
+            startEventDrivenFarm()
+        elseif not isAutoFarmOn and wasAutoFarmOn then
+            -- Farm was just disabled
+            print("[v9.1 Auto Farm] State changed to OFF - stopping event-driven farm")
+            stopEventDrivenFarm()
+        end
+
+        wasAutoFarmOn = isAutoFarmOn
         task.wait(0.1)
     end
 end)
+
+-- NOTE: Farm initialization is handled by startManualConfig() after teleport
+-- This ensures the farm starts at the correct location
 
 -- Auto Sell Loop
 task.spawn(function()
