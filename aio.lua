@@ -617,7 +617,7 @@ local function getNextAdminEvent(nowT, nowEpoch)
 end
 
 -- 📍 Lokasi teleport Admin Event
-local adminEventCFrame = CFrame.new(6066.17, -578.59, 4716.69s) * CFrame.Angles(0, math.rad(14.8), 0)
+local adminEventCFrame = CFrame.new(6066.17, -578.59, 4716.69) * CFrame.Angles(0, math.rad(14.8), 0)
 
 -- 🚀 Teleport ke Admin Event
 local function TeleportToAdminEvent()
