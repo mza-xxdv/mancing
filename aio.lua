@@ -1296,7 +1296,7 @@ local function connectFishListener()
 			local totalRare = rarityCounts.Mythic + rarityCounts.Legendary
 			if rarityLabel then
 				rarityLabel:Set(string.format(
-					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
+					"🌟 Legendary: %d | ♦️ Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCounts.Legendary,
 					rarityCounts.Mythic,
 					totalRare
@@ -1347,7 +1347,7 @@ function HandleRarityTrigger(counts, RespawnNow)
 	end
 
 	if enableMythicMode and myt >= mythicThreshold then
-		Notify("❤️‍🔥 Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("♦️ Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return RespawnNow()
 	end
 
@@ -1360,7 +1360,7 @@ function HandleRarityTrigger(counts, RespawnNow)
 
 	if enableComboMode then
 		if myt > 1 and leg < comboLegendNeeded then
-			Notify("❤️‍🔥 Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
+			Notify("♦️ Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
 			waitingComboNotified = false
 			return RespawnNow()
 		end
@@ -1389,7 +1389,7 @@ end
 ------------------------------------------------------------
 -- 🏷️ Label Status
 ------------------------------------------------------------
-rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0")
+rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | ♦️ Mythic: 0 | 🎣 Legendary + Mythic: 0")
 
 ------------------------------------------------------------
 -- 🌟 Mode 1 – Legendary
@@ -1420,27 +1420,27 @@ TabRespawn:CreateToggle({
 })
 
 ------------------------------------------------------------
--- ❤️‍🔥 Mode 2 – Mythic
+-- ♦️ Mode 2 – Mythic
 ------------------------------------------------------------
 TabRespawn:CreateSlider({
-	Name = "❤️‍🔥 Batas Mythic untuk Respawn",
+	Name = "♦️ Batas Mythic untuk Respawn",
 	Range = {1, 10},
 	Increment = 1,
 	CurrentValue = 3,
 	Callback = function(v)
 		mythicThreshold = v
-		Notify("❤️‍🔥 Threshold Mythic Diubah", string.format("Respawn saat mendapat %d Mythic", v), 3)
+		Notify("♦️ Threshold Mythic Diubah", string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawn:CreateToggle({
-	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic",
+	Name = "♦️ Aktifkan Auto Respawn Mythic",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicMode = v
 		rarityCounts = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("❤️‍🔥 Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
+			Notify("♦️ Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Mati", "Berhenti pantau ikan mythic.", 3)
 		end
@@ -1479,13 +1479,13 @@ TabRespawn:CreateSlider({
 })
 
 TabRespawn:CreateSlider({
-	Name = "❤️‍🔥 Jumlah Mythic Combo",
+	Name = "♦️ Jumlah Mythic Combo",
 	Range = {1, 5},
 	Increment = 1,
 	CurrentValue = 1,
 	Callback = function(v)
 		comboMythicNeeded = v
-		Notify("❤️‍🔥 Combo Mythic Diubah", string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
+		Notify("♦️ Combo Mythic Diubah", string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
 	end
 })
 
@@ -2120,7 +2120,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 
 	-- Mode 2 – Mythic
 	if enableMythicModeRandom and myt >= mythicThresholdRandom then
-		Notify("❤️‍🔥 Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("♦️ Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return respawnFunc()
 	end
 
@@ -2134,7 +2134,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 	if enableComboModeRandom then
 		-- kalau Mythic > 1 sebelum L cukup → respawn langsung
 		if myt > 1 and leg < comboLegendNeededRandom then
-			Notify("❤️‍🔥 Mythic Priority (Random)",
+			Notify("♦️ Mythic Priority (Random)",
 				string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeededRandom), 4)
 			waitingComboNotifiedRandom = false
 			return respawnFunc()
@@ -2186,7 +2186,7 @@ local function connectFishListenerRandom()
 			local totalRare = rarityCountsRandom.Mythic + rarityCountsRandom.Legendary
 			if rarityLabelRandom then
 				rarityLabelRandom:Set(string.format(
-					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
+					"🌟 Legendary: %d | ♦️ Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCountsRandom.Legendary,
 					rarityCountsRandom.Mythic,
 					totalRare
@@ -2212,7 +2212,7 @@ TabRespawnRandom:CreateSection("🐉 Auto Respawn Random by Rarity UID")
 -- 🏷️ Label Status Rarity
 ------------------------------------------------------------
 rarityLabelRandom = TabRespawnRandom:CreateLabel(
-	"🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0"
+	"🌟 Legendary: 0 | ♦️ Mythic: 0 | 🎣 Legendary + Mythic: 0"
 )
 
 ------------------------------------------------------------
@@ -2247,28 +2247,28 @@ TabRespawnRandom:CreateToggle({
 })
 
 ------------------------------------------------------------
--- ❤️‍🔥 Mode 2 – Mythic (Random)
+-- ♦️ Mode 2 – Mythic (Random)
 ------------------------------------------------------------
 TabRespawnRandom:CreateSlider({
-	Name = "❤️‍🔥 Batas Mythic untuk Respawn (Random)",
+	Name = "♦️ Batas Mythic untuk Respawn (Random)",
 	Range = {1, 10},
 	Increment = 1,
 	CurrentValue = mythicThresholdRandom,
 	Callback = function(v)
 		mythicThresholdRandom = v
-		Notify("❤️‍🔥 Threshold Mythic (Random) Diubah",
+		Notify("♦️ Threshold Mythic (Random) Diubah",
 			string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawnRandom:CreateToggle({
-	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic (Random)",
+	Name = "♦️ Aktifkan Auto Respawn Mythic (Random)",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicModeRandom = v
 		rarityCountsRandom = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("❤️‍🔥 Mode Mythic Random Aktif",
+			Notify("♦️ Mode Mythic Random Aktif",
 				"Respawn random otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Random Mati",
@@ -2312,13 +2312,13 @@ TabRespawnRandom:CreateSlider({
 })
 
 TabRespawnRandom:CreateSlider({
-	Name = "❤️‍🔥 Jumlah Mythic Combo (Random)",
+	Name = "♦️ Jumlah Mythic Combo (Random)",
 	Range = {1, 5},
 	Increment = 1,
 	CurrentValue = comboMythicNeededRandom,
 	Callback = function(v)
 		comboMythicNeededRandom = v
-		Notify("❤️‍🔥 Combo Mythic Random Diubah",
+		Notify("♦️ Combo Mythic Random Diubah",
 			string.format("Dibutuhkan %d Mythic dalam combo (Random)", v), 3)
 	end
 })
