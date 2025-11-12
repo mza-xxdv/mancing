@@ -423,6 +423,76 @@ task.defer(function()
 	AntiAFKLoop()
 end)
 
+------------------------------------------------------------
+-- 🕶️ 3D Rendering Toggle (AFK Dark Mode) by bubb 😏
+------------------------------------------------------------
+local RunService = game:GetService("RunService")
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local RenderingEnabled = true
+local DarkOverlay = nil
+
+local function ToggleRendering(state)
+	RenderingEnabled = state
+
+	-- 🔧 Matikan / Nyalakan 3D Rendering
+	RunService:Set3dRenderingEnabled(state)
+
+	-- 🌑 Buat overlay hitam biar layar terlihat gelap
+	if not state then
+		if not DarkOverlay then
+			local gui = Instance.new("ScreenGui")
+			gui.Name = "DarkOverlay"
+			gui.IgnoreGuiInset = true
+			gui.ResetOnSpawn = false
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.Parent = PlayerGui
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(1, 0, 1, 0)
+			frame.BackgroundColor3 = Color3.new(0, 0, 0)
+			frame.BackgroundTransparency = 0
+			frame.BorderSizePixel = 0
+			frame.Parent = gui
+
+			DarkOverlay = gui
+		else
+			DarkOverlay.Enabled = true
+		end
+
+		Rayfield:Notify({
+			Title = "🌑 Dark Mode Aktif",
+			Content = "3D rendering dimatikan. FPS maksimal & aman untuk AFK 🎣",
+			Duration = 3
+		})
+		print("[Dark Mode] 3D Rendering OFF (layar gelap total)")
+
+	else
+		RunService:Set3dRenderingEnabled(true)
+
+		if DarkOverlay then
+			DarkOverlay.Enabled = false
+		end
+
+		Rayfield:Notify({
+			Title = "☀️ Rendering Aktif",
+			Content = "3D rendering dinyalakan kembali.",
+			Duration = 3
+		})
+		print("[Dark Mode] 3D Rendering ON")
+	end
+end
+
+TabAuto:CreateSection("📉 Disable 3D Rendering")
+
+TabAuto:CreateToggle({
+	Name = "Matikan 3D Rendering",
+	CurrentValue = false, -- default: rendering aktif
+	Flag = "RenderingToggle",
+	Callback = function(state)
+		ToggleRendering(not state)
+	end
+})
 
 ------------------------------------------------------------
 -- 🌍 TAB TELEPORT
@@ -1226,7 +1296,7 @@ local function connectFishListener()
 			local totalRare = rarityCounts.Mythic + rarityCounts.Legendary
 			if rarityLabel then
 				rarityLabel:Set(string.format(
-					"🌟 Legendary: %d | 💎 Mythic: %d | 🎣 Total: %d",
+					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCounts.Legendary,
 					rarityCounts.Mythic,
 					totalRare
@@ -1277,7 +1347,7 @@ function HandleRarityTrigger(counts, RespawnNow)
 	end
 
 	if enableMythicMode and myt >= mythicThreshold then
-		Notify("💎 Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("❤️‍🔥 Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return RespawnNow()
 	end
 
@@ -1290,7 +1360,7 @@ function HandleRarityTrigger(counts, RespawnNow)
 
 	if enableComboMode then
 		if myt > 1 and leg < comboLegendNeeded then
-			Notify("💎 Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
+			Notify("❤️‍🔥 Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
 			waitingComboNotified = false
 			return RespawnNow()
 		end
@@ -1319,7 +1389,7 @@ end
 ------------------------------------------------------------
 -- 🏷️ Label Status
 ------------------------------------------------------------
-rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | 💎 Mythic: 0 | 🎣 Total: 0")
+rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0")
 
 ------------------------------------------------------------
 -- 🌟 Mode 1 – Legendary
@@ -1328,7 +1398,7 @@ TabRespawn:CreateSlider({
 	Name = "🌟 Batas Legendary untuk Respawn",
 	Range = {1, 15},
 	Increment = 1,
-	CurrentValue = 7,
+	CurrentValue = 5,
 	Callback = function(v)
 		legendThreshold = v
 		Notify("🌟 Threshold Legendary Diubah", string.format("Respawn saat mendapat %d Legendary", v), 3)
@@ -1350,27 +1420,27 @@ TabRespawn:CreateToggle({
 })
 
 ------------------------------------------------------------
--- 💎 Mode 2 – Mythic
+-- ❤️‍🔥 Mode 2 – Mythic
 ------------------------------------------------------------
 TabRespawn:CreateSlider({
-	Name = "💎 Batas Mythic untuk Respawn",
+	Name = "❤️‍🔥 Batas Mythic untuk Respawn",
 	Range = {1, 10},
 	Increment = 1,
-	CurrentValue = 2,
+	CurrentValue = 3,
 	Callback = function(v)
 		mythicThreshold = v
-		Notify("💎 Threshold Mythic Diubah", string.format("Respawn saat mendapat %d Mythic", v), 3)
+		Notify("❤️‍🔥 Threshold Mythic Diubah", string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawn:CreateToggle({
-	Name = "💎 Aktifkan Auto Respawn Mythic",
+	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicMode = v
 		rarityCounts = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("💎 Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
+			Notify("❤️‍🔥 Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Mati", "Berhenti pantau ikan mythic.", 3)
 		end
@@ -1409,13 +1479,13 @@ TabRespawn:CreateSlider({
 })
 
 TabRespawn:CreateSlider({
-	Name = "💎 Jumlah Mythic Combo",
+	Name = "❤️‍🔥 Jumlah Mythic Combo",
 	Range = {1, 5},
 	Increment = 1,
 	CurrentValue = 1,
 	Callback = function(v)
 		comboMythicNeeded = v
-		Notify("💎 Combo Mythic Diubah", string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
+		Notify("❤️‍🔥 Combo Mythic Diubah", string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
 	end
 })
 
@@ -2050,7 +2120,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 
 	-- Mode 2 – Mythic
 	if enableMythicModeRandom and myt >= mythicThresholdRandom then
-		Notify("💎 Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("❤️‍🔥 Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return respawnFunc()
 	end
 
@@ -2064,7 +2134,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 	if enableComboModeRandom then
 		-- kalau Mythic > 1 sebelum L cukup → respawn langsung
 		if myt > 1 and leg < comboLegendNeededRandom then
-			Notify("💎 Mythic Priority (Random)",
+			Notify("❤️‍🔥 Mythic Priority (Random)",
 				string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeededRandom), 4)
 			waitingComboNotifiedRandom = false
 			return respawnFunc()
@@ -2116,7 +2186,7 @@ local function connectFishListenerRandom()
 			local totalRare = rarityCountsRandom.Mythic + rarityCountsRandom.Legendary
 			if rarityLabelRandom then
 				rarityLabelRandom:Set(string.format(
-					"🌟 Legendary: %d | 💎 Mythic: %d | 🎣 Total: %d",
+					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCountsRandom.Legendary,
 					rarityCountsRandom.Mythic,
 					totalRare
@@ -2142,7 +2212,7 @@ TabRespawnRandom:CreateSection("🐉 Auto Respawn Random by Rarity UID")
 -- 🏷️ Label Status Rarity
 ------------------------------------------------------------
 rarityLabelRandom = TabRespawnRandom:CreateLabel(
-	"🌟 Legendary: 0 | 💎 Mythic: 0 | 🎣 Total: 0"
+	"🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0"
 )
 
 ------------------------------------------------------------
@@ -2177,28 +2247,28 @@ TabRespawnRandom:CreateToggle({
 })
 
 ------------------------------------------------------------
--- 💎 Mode 2 – Mythic (Random)
+-- ❤️‍🔥 Mode 2 – Mythic (Random)
 ------------------------------------------------------------
 TabRespawnRandom:CreateSlider({
-	Name = "💎 Batas Mythic untuk Respawn (Random)",
+	Name = "❤️‍🔥 Batas Mythic untuk Respawn (Random)",
 	Range = {1, 10},
 	Increment = 1,
 	CurrentValue = mythicThresholdRandom,
 	Callback = function(v)
 		mythicThresholdRandom = v
-		Notify("💎 Threshold Mythic (Random) Diubah",
+		Notify("❤️‍🔥 Threshold Mythic (Random) Diubah",
 			string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawnRandom:CreateToggle({
-	Name = "💎 Aktifkan Auto Respawn Mythic (Random)",
+	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic (Random)",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicModeRandom = v
 		rarityCountsRandom = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("💎 Mode Mythic Random Aktif",
+			Notify("❤️‍🔥 Mode Mythic Random Aktif",
 				"Respawn random otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Random Mati",
@@ -2242,13 +2312,13 @@ TabRespawnRandom:CreateSlider({
 })
 
 TabRespawnRandom:CreateSlider({
-	Name = "💎 Jumlah Mythic Combo (Random)",
+	Name = "❤️‍🔥 Jumlah Mythic Combo (Random)",
 	Range = {1, 5},
 	Increment = 1,
 	CurrentValue = comboMythicNeededRandom,
 	Callback = function(v)
 		comboMythicNeededRandom = v
-		Notify("💎 Combo Mythic Random Diubah",
+		Notify("❤️‍🔥 Combo Mythic Random Diubah",
 			string.format("Dibutuhkan %d Mythic dalam combo (Random)", v), 3)
 	end
 })
@@ -3165,85 +3235,15 @@ task.spawn(function()
     end
 end)
 
-------------------------------------------------------------
--- 🕶️ 3D Rendering Toggle (AFK Dark Mode) by bubb 😏
-------------------------------------------------------------
-local RunService = game:GetService("RunService")
-local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-local RenderingEnabled = true
-local DarkOverlay = nil
-
-local function ToggleRendering(state)
-	RenderingEnabled = state
-
-	-- 🔧 Matikan / Nyalakan 3D Rendering
-	RunService:Set3dRenderingEnabled(state)
-
-	-- 🌑 Buat overlay hitam biar layar terlihat gelap
-	if not state then
-		if not DarkOverlay then
-			local gui = Instance.new("ScreenGui")
-			gui.Name = "DarkOverlay"
-			gui.IgnoreGuiInset = true
-			gui.ResetOnSpawn = false
-			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-			gui.Parent = PlayerGui
-
-			local frame = Instance.new("Frame")
-			frame.Size = UDim2.new(1, 0, 1, 0)
-			frame.BackgroundColor3 = Color3.new(0, 0, 0)
-			frame.BackgroundTransparency = 0
-			frame.BorderSizePixel = 0
-			frame.Parent = gui
-
-			DarkOverlay = gui
-		else
-			DarkOverlay.Enabled = true
-		end
-
-		Rayfield:Notify({
-			Title = "🌑 Dark Mode Aktif",
-			Content = "3D rendering dimatikan. FPS maksimal & aman untuk AFK 🎣",
-			Duration = 3
-		})
-		print("[Dark Mode] 3D Rendering OFF (layar gelap total)")
-
-	else
-		RunService:Set3dRenderingEnabled(true)
-
-		if DarkOverlay then
-			DarkOverlay.Enabled = false
-		end
-
-		Rayfield:Notify({
-			Title = "☀️ Rendering Aktif",
-			Content = "3D rendering dinyalakan kembali.",
-			Duration = 3
-		})
-		print("[Dark Mode] 3D Rendering ON")
-	end
-end
-
-local FXTab = Window:CreateTab("🕶️ Dark Mode")
-
-FXTab:CreateToggle({
-	Name = "Matikan 3D Rendering (Gelapkan Layar)",
-	CurrentValue = false, -- default: rendering aktif
-	Flag = "RenderingToggle",
-	Callback = function(state)
-		ToggleRendering(not state)
-	end
-})
-
-FXTab:CreateParagraph({
-	Title = "ℹ️ Info",
-	Content = "Saat diaktifkan, game berhenti merender semua objek 3D. Berguna untuk AFK panjang tanpa beban GPU ⚡"
-})
-
-
-
 -- final ready notif
 Notify("🎣 SC FISH IT by @diketjup", "", 5)
 
 -- End of script
+
+-- 5
+-- 3
+-- 2
+-- 1
+-- 1000
+-- 2000
+-- 60
