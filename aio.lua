@@ -375,11 +375,11 @@ local function AntiAFKLoop()
 	task.spawn(function()
 		startTime = tick()
 		while AntiAFK_Active do
-			task.wait(60) -- tiap 60 detik
+			task.wait(1000) 
 			simulateActivity()
 
 			local elapsed = math.floor(tick() - startTime)
-			print(string.format("[AntiAFK] Aktivitas terkirim (%ds)", elapsed))
+			-- print(string.format("[AntiAFK] Aktivitas terkirim (%ds)", elapsed))
 
 			-- stop otomatis setelah 20 menit
 			if elapsed >= 1200 then
@@ -423,6 +423,76 @@ task.defer(function()
 	AntiAFKLoop()
 end)
 
+------------------------------------------------------------
+-- 🕶️ 3D Rendering Toggle (AFK Dark Mode) by bubb 😏
+------------------------------------------------------------
+local RunService = game:GetService("RunService")
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local RenderingEnabled = true
+local DarkOverlay = nil
+
+local function ToggleRendering(state)
+	RenderingEnabled = state
+
+	-- 🔧 Matikan / Nyalakan 3D Rendering
+	RunService:Set3dRenderingEnabled(state)
+
+	-- 🌑 Buat overlay hitam biar layar terlihat gelap
+	if not state then
+		if not DarkOverlay then
+			local gui = Instance.new("ScreenGui")
+			gui.Name = "DarkOverlay"
+			gui.IgnoreGuiInset = true
+			gui.ResetOnSpawn = false
+			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			gui.Parent = PlayerGui
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(1, 0, 1, 0)
+			frame.BackgroundColor3 = Color3.new(0, 0, 0)
+			frame.BackgroundTransparency = 0
+			frame.BorderSizePixel = 0
+			frame.Parent = gui
+
+			DarkOverlay = gui
+		else
+			DarkOverlay.Enabled = true
+		end
+
+		Rayfield:Notify({
+			Title = "🌑 Dark Mode Aktif",
+			Content = "3D rendering dimatikan. FPS maksimal & aman untuk AFK 🎣",
+			Duration = 3
+		})
+		print("[Dark Mode] 3D Rendering OFF (layar gelap total)")
+
+	else
+		RunService:Set3dRenderingEnabled(true)
+
+		if DarkOverlay then
+			DarkOverlay.Enabled = false
+		end
+
+		Rayfield:Notify({
+			Title = "☀️ Rendering Aktif",
+			Content = "3D rendering dinyalakan kembali.",
+			Duration = 3
+		})
+		print("[Dark Mode] 3D Rendering ON")
+	end
+end
+
+TabAuto:CreateSection("📉 Disable 3D Rendering")
+
+TabAuto:CreateToggle({
+	Name = "Matikan 3D Rendering",
+	CurrentValue = false, -- default: rendering aktif
+	Flag = "RenderingToggle",
+	Callback = function(state)
+		ToggleRendering(not state)
+	end
+})
 
 ------------------------------------------------------------
 -- 🌍 TAB TELEPORT
@@ -448,10 +518,8 @@ local teleportLocations = {
     { Name = "Underground Cellar 🕳️", CFrame = CFrame.new(2135.89, -91.20, -698.50) },
     { Name = "Ancient Jungle 🌿", CFrame = CFrame.new(1483.11, 11.14, -300.08) },
     { Name = "Sacred Temple ⛩️", CFrame = CFrame.new(1506.53, -22.13, -640.17) },
-    { Name = "Mount Hallow 🎃", CFrame = CFrame.new(2131.85, 80.79, 3266.53) },
-    { Name = "Hallow Bay 🌕", CFrame = CFrame.new(1792.89, 7.87, 3055.72) },
-    { Name = "Crystal Cavern 💎", CFrame = CFrame.new(-1827.03, -447.75, 7412.29) },
-    { Name = "Crystal Falls 🌌", CFrame = CFrame.new(-1978.96, -440.00, 7347.80) },
+    { Name = "Ancient Ruin 🕸️", CFrame = CFrame.new(6052.99, -553.00, 4446.64) },
+    { Name = "Crystalline Passage ⛓️", CFrame = CFrame.new(6049.71, -538.90, 4385.69) },
     { Name = "Arrow Artifact 🔺", CFrame = CFrame.new(881.40, 6.34, -346.27) },
     { Name = "Crescent Artifact 🌙", CFrame = CFrame.new(1404.67, 5.08, 120.55) },
     { Name = "Diamond Artifact 🔷", CFrame = CFrame.new(1841.52, 2.76, -300.38) },
@@ -679,13 +747,37 @@ TabTeleport:CreateToggle({
 	end
 })
 
--- 🧭 Tombol Manual Teleport
+
+
+------------------------------------------------------------
+-- 🚀 Teleport ke Admin Event (Manual Tanpa Kembali)
+------------------------------------------------------------
+local function TeleportToAdminEvent_Manual()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		Notify("⚠️ Gagal Teleport", "Karakter belum siap untuk teleport.", 3)
+		return
+	end
+
+	-- langsung teleport tanpa menyimpan posisi
+	pcall(function()
+		hrp.CFrame = adminEventCFrame
+	end)
+
+	Notify("🚀 Teleport Admin Event (Manual)", "Kamu sudah sampai di lokasi event, bubb 💋", 3)
+end
+
+------------------------------------------------------------
+-- 🧭 Tombol Manual Teleport (Tanpa Balik)
+------------------------------------------------------------
 TabTeleport:CreateButton({
-	Name = "🚀 Teleport Manual ke Admin Event",
+	Name = "🚀 Teleport Manual (Tanpa Balik)",
 	Callback = function()
-		TeleportToAdminEvent()
+		TeleportToAdminEvent_Manual()
 	end
 })
+
 
 
 ------------------------------------------------------------
@@ -837,80 +929,61 @@ end
 
 
 -- ♻️ Respawn 2x (dengan jual ikan di tengah), lalu balik posisi dan lanjut AutoFish
-local function RespawnNow()
-    task.spawn(function()
-        local willResume = Config.AutoFishing
-        StopAutoFish()
+-- local function RespawnNow()
+--     task.spawn(function()
+--         local willResume = Config.AutoFishing
+--         StopAutoFish()
 
-        local hrp = safeGetHRP()
-        if not hrp then
-            Notify("❌ Gagal Respawn", "HumanoidRootPart tidak ditemukan.", 3)
-            return
-        end
+--         local hrp = safeGetHRP()
+--         if not hrp then
+--             Notify("❌ Gagal Respawn", "HumanoidRootPart tidak ditemukan.", 3)
+--             return
+--         end
 
-        -- simpan posisi + arah
-        local lastCFrame = hrp.CFrame
+--         -- simpan posisi + arah
+--         local lastCFrame = hrp.CFrame
 
-        -- helper respawn
-        local function doRespawnOnce(idx)
-            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.Health = 0 end
-            local newChar = LocalPlayer.CharacterAdded:Wait()
-            newChar:WaitForChild("HumanoidRootPart", 10)
-            task.wait(1)
-            respawnCount += 1
-            Notify("♻️ Respawn", ("Respawn #%d selesai"):format(idx), 2)
-        end
+--         -- helper respawn
+--         local function doRespawnOnce(idx)
+--             local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+--             if hum then hum.Health = 0 end
+--             local newChar = LocalPlayer.CharacterAdded:Wait()
+--             newChar:WaitForChild("HumanoidRootPart", 10)
+--             task.wait(1)
+--             respawnCount += 1
+--             Notify("♻️ Respawn", ("Respawn #%d selesai"):format(idx), 2)
+--         end
 
-        -- RESPWAN #1
-        doRespawnOnce(1)
-        task.wait(0.3)
+--         -- RESPWAN #1
+--         doRespawnOnce(1)
+--         task.wait(0.3)
 
-        -- JUAL IKAN setelah respawn pertama
-        local sell = GetNetRemote("RF/SellAllItems")
-        if sell then
-            pcall(function()
-                sell:InvokeServer()
-                Notify("💰 Jual Ikan", "Semua ikan sudah dijual.", 2)
-            end)
-        end
+--         -- JUAL IKAN setelah respawn pertama
+--         local sell = GetNetRemote("RF/SellAllItems")
+--         if sell then
+--             pcall(function()
+--                 sell:InvokeServer()
+--                 Notify("💰 Jual Ikan", "Semua ikan sudah dijual.", 2)
+--             end)
+--         end
 
-        task.wait(1)
+--         task.wait(1)
 
-        -- RESPWAN #2
-        doRespawnOnce(2)
-        task.wait(0.3)
+--         -- RESPWAN #2
+--         doRespawnOnce(2)
+--         task.wait(0.3)
 
-		--------- //////////////// ---------
-		-- equip rod lagi (dan charge opsional)
-		-- task.wait(0.4)
-		-- pcall(function() if EquipTool then EquipTool:FireServer(1) end end)
-		-- -- kalau mau charge: aman dilewatin kalau RF Charge kadang error
-		-- pcall(function()
-		-- 	if ChargeRod and ChargeRod.InvokeServer then
-		-- 		local t = (workspace.GetServerTimeNow and workspace:GetServerTimeNow()) or tick()
-		-- 		ChargeRod:InvokeServer(t)
-		-- 	end
-		-- end)
-
-		-- Remote packet size(~): 10 bytes
-
-        -- KEMBALI KE POSISI & ARAH SEMULA
-        local newChar = LocalPlayer.Character
-        local newHRP = newChar and newChar:FindFirstChild("HumanoidRootPart")
-        if newHRP then
-            newHRP.CFrame = lastCFrame
-            Notify("📍 Kembali ke posisi & arah", "Sudah balik ke orientasi sebelumnya.", 3)
-        else
-            Notify("⚠️ Gagal Balik", "HRP tidak ditemukan setelah respawn kedua.", 3)
-        end
-
-        -- LANJUT AUTOFISH (jika aktif sebelumnya)
-        -- if willResume then
-        --     StartAutoFish()
-        -- end
-    end)
-end
+-- 		-- KEMBALI KE POSISI & ARAH SEMULA
+--         local newChar = LocalPlayer.Character
+--         local newHRP = newChar and newChar:FindFirstChild("HumanoidRootPart")
+--         if newHRP then
+--             newHRP.CFrame = lastCFrame
+--             Notify("📍 Kembali ke posisi & arah", "Sudah balik ke orientasi sebelumnya.", 3)
+--         else
+--             Notify("⚠️ Gagal Balik", "HRP tidak ditemukan setelah respawn kedua.", 3)
+--         end
+--     end)
+-- end
 
 
 
@@ -987,75 +1060,221 @@ local function Notify(title, content, duration)
 	end)
 end
 
-------------------------------------------------------------
--- 🎣 Fungsi RespawnNow (Base Dua Kali Respawnmu)
-------------------------------------------------------------
-local function RespawnNow()
-	if isRespawning then return end
-	isRespawning = true
+-- ------------------------------------------------------------
+-- -- 🎣 Fungsi RespawnNow (Base Dua Kali Respawnmu)
+-- ------------------------------------------------------------
+-- local function RespawnNow()
+-- 	if isRespawning then return end
+-- 	isRespawning = true
 
-	task.spawn(function()
-		local willResume = Config and Config.AutoFishing
-		if StopAutoFish then StopAutoFish() end
+-- 	task.spawn(function()
+-- 		local willResume = Config and Config.AutoFishing
+-- 		if StopAutoFish then StopAutoFish() end
 
-		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if not hrp then
-			Notify("❌ Gagal Respawn", "HumanoidRootPart tidak ditemukan.", 3)
-			isRespawning = false
-			return
-		end
+-- 		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+-- 		if not hrp then
+-- 			Notify("❌ Gagal Respawn", "HumanoidRootPart tidak ditemukan.", 3)
+-- 			isRespawning = false
+-- 			return
+-- 		end
 
-		local lastCFrame = hrp.CFrame
-		local function doRespawnOnce(idx)
-			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if hum then hum.Health = 0 end
-			local newChar = player.CharacterAdded:Wait()
-			newChar:WaitForChild("HumanoidRootPart", 10)
-			task.wait(1)
-			Notify("♻️ Respawn", ("Respawn #%d selesai"):format(idx), 2)
-		end
+-- 		local lastCFrame = hrp.CFrame
+-- 		local function doRespawnOnce(idx)
+-- 			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+-- 			if hum then hum.Health = 0 end
+-- 			local newChar = player.CharacterAdded:Wait()
+-- 			newChar:WaitForChild("HumanoidRootPart", 10)
+-- 			task.wait(1)
+-- 			Notify("♻️ Respawn", ("Respawn #%d selesai"):format(idx), 2)
+-- 		end
 
-		-- Respawn #1
-		doRespawnOnce(1)
-		task.wait(0.3)
+-- 		-- Respawn #1
+-- 		doRespawnOnce(1)
+-- 		task.wait(0.3)
 
-		-- Jual ikan
-		local sell = GetNetRemote and GetNetRemote("RF/SellAllItems")
-		if sell then
-			pcall(function()
-				sell:InvokeServer()
-				Notify("💰 Jual Ikan", "Semua ikan sudah dijual.", 2)
-			end)
-		end
+-- 		-- Jual ikan
+-- 		local sell = GetNetRemote and GetNetRemote("RF/SellAllItems")
+-- 		if sell then
+-- 			pcall(function()
+-- 				sell:InvokeServer()
+-- 				Notify("💰 Jual Ikan", "Semua ikan sudah dijual.", 2)
+-- 			end)
+-- 		end
 
-		task.wait(1)
+-- 		task.wait(1)
 
-		-- Respawn #2
-		doRespawnOnce(2)
-		task.wait(0.3)
+-- 		-- Respawn #2
+-- 		doRespawnOnce(2)
+-- 		task.wait(0.3)
 
-		-- Balik ke posisi semula
-		local newHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if newHRP then
-			newHRP.CFrame = lastCFrame
-			Notify("📍 Kembali ke posisi & arah", "Sudah balik ke orientasi sebelumnya.", 3)
-		end
+-- 		-- Balik ke posisi semula
+-- 		local newHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+-- 		if newHRP then
+-- 			newHRP.CFrame = lastCFrame
+-- 			Notify("📍 Kembali ke posisi & arah", "Sudah balik ke orientasi sebelumnya.", 3)
+-- 		end
 
-		-- Re-equip rod
-		task.wait(0.5)
-		local equipRodEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
-			.net["RE/EquipToolFromHotbar"]
-		if equipRodEvent then
-			pcall(function() equipRodEvent:FireServer(1) end)
-		end
+-- 		-- Re-equip rod
+-- 		task.wait(0.5)
+-- 		local equipRodEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
+-- 			.net["RE/EquipToolFromHotbar"]
+-- 		if equipRodEvent then
+-- 			pcall(function() equipRodEvent:FireServer(1) end)
+-- 		end
 
-		-- Reset counter
-		task.wait(0.2)
-		rarityCounts = { Mythic = 0, Legendary = 0 }
-		sessionStartCaught = AllTimeCaught.Value
-		isRespawning = false
-	end)
+-- 		-- Reset counter rarity
+-- 		task.wait(0.2)
+-- 		rarityCounts = { Mythic = 0, Legendary = 0 }
+-- 		sessionStartCaught = AllTimeCaught.Value
+
+-- 		------------------------------------------------------------
+-- 		-- 💫 Tambahan: Reset Anti-Stuck Counter setelah Respawn (FIX FINAL)
+-- 		------------------------------------------------------------
+-- 		if antiStuckEnabled then
+-- 			task.spawn(function()
+-- 				task.wait(1) -- kasih jeda biar AllTimeCaught.Value stabil
+-- 				fishSinceLastRare = 0
+-- 				lastCaughtForStuck = AllTimeCaught.Value
+-- 				print("[Anti-Stuck Reset] AllTimeCaught:", AllTimeCaught.Value)
+-- 				stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+-- 				Rayfield:Notify({
+-- 					Title = "🔄 Anti-Stuck Reset",
+-- 					Content = "Jumlah ikan tanpa rare berhasil direset setelah respawn ♻️",
+-- 					Duration = 3
+-- 				})
+-- 			end)
+-- 		end
+-- 		isRespawning = false
+-- 	end)
+-- end
+
+-- ✅ Inisialisasi Remote & Fungsi Toggle
+local Autofish = GetNetRemote("RF/UpdateAutoFishingState")
+local CurrentValue = false
+
+local function ToggleAutoFishing(state)
+    pcall(function()
+        Autofish:InvokeServer(state)
+        CurrentValue = state
+        print("[AutoFishing]", state and "ON 🎣" or "OFF 💤")
+    end)
 end
+
+-- ✅ Fungsi Respawn Lengkap
+local function RespawnNow()
+    if isRespawning then return end
+    isRespawning = true
+
+    task.spawn(function()
+        ----------------------------------------------------------------
+        -- ⛔ Matikan AutoFishing saat proses respawn mulai
+        ----------------------------------------------------------------
+        task.spawn(function()
+            task.wait(2)
+            ToggleAutoFishing(false)
+        end)
+
+        local willResume = Config and Config.AutoFishing
+        if StopAutoFish then StopAutoFish() end
+
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            Notify("❌ Gagal Respawn", "HumanoidRootPart tidak ditemukan.", 3)
+            isRespawning = false
+            return
+        end
+
+        local lastCFrame = hrp.CFrame
+
+        local function doRespawnOnce(idx)
+            local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
+            local newChar = player.CharacterAdded:Wait()
+            newChar:WaitForChild("HumanoidRootPart", 10)
+            task.wait(1)
+            Notify("♻️ Respawn", ("Respawn #%d selesai"):format(idx), 2)
+        end
+
+        -- Respawn #1
+        doRespawnOnce(1)
+        task.wait(0.3)
+
+        -- Jual ikan
+        local sell = GetNetRemote and GetNetRemote("RF/SellAllItems")
+        if sell then
+            pcall(function()
+                sell:InvokeServer()
+                Notify("💰 Jual Ikan", "Semua ikan sudah dijual.", 2)
+            end)
+        end
+
+        task.wait(1)
+
+        -- Respawn #2
+        doRespawnOnce(2)
+        task.wait(0.3)
+
+        -- Balik ke posisi semula
+        local newHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if newHRP then
+            newHRP.CFrame = lastCFrame
+            Notify("📍 Kembali ke posisi & arah", "Sudah balik ke orientasi sebelumnya.", 3)
+        end
+
+        ----------------------------------------------------------------
+        -- ✅ Kroscek sebelum nyalakan AutoFishing lagi
+        ----------------------------------------------------------------
+        task.wait(0.5)
+        if CurrentValue == true then
+            print("[AutoFishing] ⚠️ Detected still ON before re-enable — resetting state...")
+            ToggleAutoFishing(false)
+            task.wait(0.3)
+        end
+
+        -- Sekarang nyalakan kembali
+        ToggleAutoFishing(true)
+        Notify("🎣 AutoFishing", "AutoFishing kembali diaktifkan.", 3)
+
+        ----------------------------------------------------------------
+        -- 🎣 Equip pancing
+        ----------------------------------------------------------------
+        local equipRodEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]
+            .net["RE/EquipToolFromHotbar"]
+        if equipRodEvent then
+            pcall(function()
+                equipRodEvent:FireServer(1)
+            end)
+        end
+
+        ----------------------------------------------------------------
+        -- 🔄 Reset counter rarity
+        ----------------------------------------------------------------
+        task.wait(0.2)
+        rarityCounts = { Mythic = 0, Legendary = 0 }
+        sessionStartCaught = AllTimeCaught.Value
+
+        ----------------------------------------------------------------
+        -- 💫 Reset Anti-Stuck Counter setelah Respawn (FIX FINAL)
+        ----------------------------------------------------------------
+        if antiStuckEnabled then
+            task.spawn(function()
+                task.wait(1)
+                fishSinceLastRare = 0
+                lastCaughtForStuck = AllTimeCaught.Value
+                print("[Anti-Stuck Reset] AllTimeCaught:", AllTimeCaught.Value)
+                stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+                Rayfield:Notify({
+                    Title = "🔄 Anti-Stuck Reset",
+                    Content = "Jumlah ikan tanpa rare berhasil direset setelah respawn ♻️",
+                    Duration = 3
+                })
+            end)
+        end
+
+        isRespawning = false
+    end)
+end
+
 
 ------------------------------------------------------------
 -- 🔄 Listener Utama (UID Detection Event)
@@ -1069,10 +1288,15 @@ local function connectFishListener()
 			if rarity == "Mythic" then rarityCounts.Mythic += 1 end
 			if rarity == "Legendary" then rarityCounts.Legendary += 1 end
 
+			-- 🔁 reset counter anti-stuck kalau dapat rare
+			if rarity == "Mythic" or rarity == "Legendary" then
+				fishSinceLastRare = 0
+			end
+
 			local totalRare = rarityCounts.Mythic + rarityCounts.Legendary
 			if rarityLabel then
 				rarityLabel:Set(string.format(
-					"🌟 Legendary: %d | 💎 Mythic: %d | 🎣 Total: %d",
+					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCounts.Legendary,
 					rarityCounts.Mythic,
 					totalRare
@@ -1110,7 +1334,6 @@ local enableComboMode = false
 
 ------------------------------------------------------------
 -- 🧠 Fungsi Trigger Utama (HandleRarityTrigger)
--- Dipanggil otomatis oleh listener dari Bagian 1
 ------------------------------------------------------------
 function HandleRarityTrigger(counts, RespawnNow)
 	if isRespawning then return end
@@ -1118,55 +1341,43 @@ function HandleRarityTrigger(counts, RespawnNow)
 	local myt = counts.Mythic
 	local total = leg + myt
 
-	-- 🟢 Mode 1 – Respawn jika Legendary ≥ threshold
 	if enableLegendaryMode and leg >= legendThreshold then
 		Notify("🌟 Legendary Respawn", string.format("Mendapat %d Legendary – respawn!", leg), 3)
 		return RespawnNow()
 	end
 
-	-- 🔥 Mode 2 – Respawn jika Mythic ≥ threshold
 	if enableMythicMode and myt >= mythicThreshold then
-		Notify("💎 Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("❤️‍🔥 Mythic Respawn", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return RespawnNow()
 	end
 
-	-- 🐉 Mode 3 – Jika 2 Mythic sebelum Legend penuh (7)
 	if enableMythicBeforeLegendaryMode and myt >= 2 and leg < legendThreshold then
 		Notify("🐉 Trigger", "2 Mythic didapat sebelum 7 Legendary – respawn 💀", 4)
 		return RespawnNow()
 	end
 
-	-- Tambahkan di luar fungsi (global flag)
 	local waitingComboNotified = false
 
-	------------------------------------------------------------
-	-- 💥 Mode 4 – Combo Smart (Prioritas Mythic)
-	------------------------------------------------------------
 	if enableComboMode then
-		-- 🔥 Jika Mythic > 1 sebelum Legendary cukup → respawn langsung
 		if myt > 1 and leg < comboLegendNeeded then
-			Notify("💎 Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
+			Notify("❤️‍🔥 Mythic Priority", string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeeded), 4)
 			waitingComboNotified = false
 			return RespawnNow()
 		end
 
-		-- 🐟 Jika Legendary > threshold tapi belum ada Mythic → hanya 1x notif
 		if leg > comboLegendNeeded and myt == 0 then
 			if not waitingComboNotified then
-				-- Notify("🎣 Combo Waiting", string.format("%d Legendary didapat, menunggu Mythic pertama...", leg), 3)
 				waitingComboNotified = true
 			end
 			return
 		end
 
-		-- 💥 Jika sudah dapat Mythic setelah Legendary cukup → respawn
 		if leg > comboLegendNeeded and myt >= 1 then
 			Notify("⚡ Combo Triggered", string.format("%d Legendary + %d Mythic – respawn!", leg, myt), 4)
 			waitingComboNotified = false
 			return RespawnNow()
 		end
 
-		-- 💫 Kombinasi ideal pertama kali tercapai (misal 2L + 1M)
 		if leg == comboLegendNeeded and myt == comboMythicNeeded then
 			Notify("💥 Combo Aktif", string.format("%d Legendary + %d Mythic – pantau Mythic berikutnya ⚡", leg, myt), 3)
 			waitingComboNotified = false
@@ -1175,11 +1386,10 @@ function HandleRarityTrigger(counts, RespawnNow)
 	end
 end
 
-
 ------------------------------------------------------------
 -- 🏷️ Label Status
 ------------------------------------------------------------
-rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | 💎 Mythic: 0 | 🎣 Total: 0")
+rarityLabel = TabRespawn:CreateLabel("🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0")
 
 ------------------------------------------------------------
 -- 🌟 Mode 1 – Legendary
@@ -1188,11 +1398,10 @@ TabRespawn:CreateSlider({
 	Name = "🌟 Batas Legendary untuk Respawn",
 	Range = {1, 15},
 	Increment = 1,
-	CurrentValue = legendThreshold,
+	CurrentValue = 5,
 	Callback = function(v)
 		legendThreshold = v
-		Notify("🌟 Threshold Legendary Diubah",
-			string.format("Respawn saat mendapat %d Legendary", v), 3)
+		Notify("🌟 Threshold Legendary Diubah", string.format("Respawn saat mendapat %d Legendary", v), 3)
 	end
 })
 
@@ -1211,28 +1420,27 @@ TabRespawn:CreateToggle({
 })
 
 ------------------------------------------------------------
--- 💎 Mode 2 – Mythic
+-- ❤️‍🔥 Mode 2 – Mythic
 ------------------------------------------------------------
 TabRespawn:CreateSlider({
-	Name = "💎 Batas Mythic untuk Respawn",
+	Name = "❤️‍🔥 Batas Mythic untuk Respawn",
 	Range = {1, 10},
 	Increment = 1,
-	CurrentValue = mythicThreshold,
+	CurrentValue = 3,
 	Callback = function(v)
 		mythicThreshold = v
-		Notify("💎 Threshold Mythic Diubah",
-			string.format("Respawn saat mendapat %d Mythic", v), 3)
+		Notify("❤️‍🔥 Threshold Mythic Diubah", string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawn:CreateToggle({
-	Name = "💎 Aktifkan Auto Respawn Mythic",
+	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicMode = v
 		rarityCounts = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("💎 Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
+			Notify("❤️‍🔥 Mode Mythic Aktif", "Respawn otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Mati", "Berhenti pantau ikan mythic.", 3)
 		end
@@ -1243,7 +1451,7 @@ TabRespawn:CreateToggle({
 -- 🐉 Mode 3 – 2 Mythic Before Legendary
 ------------------------------------------------------------
 TabRespawn:CreateToggle({
-	Name = "🐉 Respawn jika dapat 2 Mythic sebelum Legendary penuh",
+	Name = "🐉 Respawn jika dapat Mythic sebelum Legendary penuh",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicBeforeLegendaryMode = v
@@ -1263,23 +1471,21 @@ TabRespawn:CreateSlider({
 	Name = "🌟 Jumlah Legendary Combo",
 	Range = {1, 10},
 	Increment = 1,
-	CurrentValue = comboLegendNeeded,
+	CurrentValue = 2,
 	Callback = function(v)
 		comboLegendNeeded = v
-		Notify("🌟 Combo Legendary Diubah",
-			string.format("Dibutuhkan %d Legendary dalam combo", v), 3)
+		Notify("🌟 Combo Legendary Diubah", string.format("Dibutuhkan %d Legendary dalam combo", v), 3)
 	end
 })
 
 TabRespawn:CreateSlider({
-	Name = "💎 Jumlah Mythic Combo",
+	Name = "❤️‍🔥 Jumlah Mythic Combo",
 	Range = {1, 5},
 	Increment = 1,
-	CurrentValue = comboMythicNeeded,
+	CurrentValue = 1,
 	Callback = function(v)
 		comboMythicNeeded = v
-		Notify("💎 Combo Mythic Diubah",
-			string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
+		Notify("❤️‍🔥 Combo Mythic Diubah", string.format("Dibutuhkan %d Mythic dalam combo", v), 3)
 	end
 })
 
@@ -1290,33 +1496,55 @@ TabRespawn:CreateToggle({
 		enableComboMode = v
 		rarityCounts = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("💥 Mode Combo Aktif", string.format(
-				"Respawn setelah %d Legendary & %d Mythic (Mythic prioritas) ⚡",
-				comboLegendNeeded, comboMythicNeeded
-			), 4)
+			Notify("💥 Mode Combo Aktif", string.format("Respawn setelah %d Legendary & %d Mythic (Mythic prioritas) ⚡", comboLegendNeeded, comboMythicNeeded), 4)
 		else
 			Notify("🧊 Mode Combo Mati", "Pantauan combo dinonaktifkan 💤", 3)
 		end
 	end
 })
 
-
 ------------------------------------------------------------
 -- 🐟 Auto Respawn Berdasarkan Jumlah Ikan (Reset Setelah Respawn)
 ------------------------------------------------------------
 local fishBasedRespawnEnabled = false
 local lastCaught = 0
-local caughtThreshold = 1000 -- default tiap 1000 ikan
-
--- pastikan leaderstats siap
+local caughtThreshold = 1000
 local leaderstats = player:WaitForChild("leaderstats")
 local AllTimeCaught = leaderstats:WaitForChild("Caught")
 
 ------------------------------------------------------------
--- 📈 Real-time Counter: Next Respawn after X Fish
+-- 📈 Label Progress
 ------------------------------------------------------------
 local fishProgressLabel = TabRespawn:CreateLabel("🐟 Next respawn after: 0 / " .. caughtThreshold)
 
+------------------------------------------------------------
+-- 🧠 Fungsi Restart Counter (dipanggil setelah respawn)
+------------------------------------------------------------
+local function ResetFishCounter()
+    lastCaught = AllTimeCaught.Value
+    fishProgressLabel:Set(string.format("🐟 Next respawn after: 0 / %d (0%%)", caughtThreshold))
+    Rayfield:Notify({
+        Title = "♻️ Counter Reset",
+        Content = "Progress ikan telah direset setelah respawn 🎣",
+        Duration = 3
+    })
+end
+
+------------------------------------------------------------
+-- 🔄 Listener Reset Setelah Respawn
+------------------------------------------------------------
+player.CharacterAdded:Connect(function(newChar)
+    if not fishBasedRespawnEnabled then return end
+    task.spawn(function()
+        newChar:WaitForChild("HumanoidRootPart", 10)
+        task.wait(1)
+        ResetFishCounter()
+    end)
+end)
+
+------------------------------------------------------------
+-- 🧩 LOOP AUTO-RESPAWN
+------------------------------------------------------------
 task.spawn(function()
     while task.wait(1) do
         if not fishBasedRespawnEnabled then
@@ -1328,10 +1556,8 @@ task.spawn(function()
         local diff = now - lastCaught
         local percent = math.min(100, math.floor((diff / caughtThreshold) * 100))
 
-        -- tampilkan progress real-time
         fishProgressLabel:Set(string.format("🐟 Next respawn after: %d / %d (%d%%)", diff, caughtThreshold, percent))
 
-        -- trigger respawn
         if diff >= caughtThreshold then
             Rayfield:Notify({
                 Title = "♻️ Auto Respawn Triggered",
@@ -1339,18 +1565,14 @@ task.spawn(function()
                 Duration = 4
             })
 
-            -- panggil fungsi respawn utama kamu
             RespawnNow()
-
-            -- reset counter ke posisi sekarang (biar mulai hitung ulang)
-            lastCaught = AllTimeCaught.Value
-            fishProgressLabel:Set("🐟 Next respawn after: 0 / " .. caughtThreshold)
+            ResetFishCounter()
         end
     end
 end)
 
 ------------------------------------------------------------
--- 🎛️ Toggle Enable / Disable
+-- 🎛️ TOGGLE ENABLE / DISABLEk
 ------------------------------------------------------------
 TabRespawn:CreateToggle({
     Name = "🐟 Auto Respawn by Fish Count",
@@ -1358,7 +1580,7 @@ TabRespawn:CreateToggle({
     Callback = function(Value)
         fishBasedRespawnEnabled = Value
         if Value then
-            lastCaught = AllTimeCaught.Value
+            ResetFishCounter()
             Rayfield:Notify({
                 Title = "🐟 Auto Respawn Aktif",
                 Content = string.format("Respawn otomatis tiap %d ikan 🎣", caughtThreshold),
@@ -1374,23 +1596,20 @@ TabRespawn:CreateToggle({
     end
 })
 
-
-
+------------------------------------------------------------
+-- 🎚️ SLIDER
+------------------------------------------------------------
 local sliderNotifyDelay
 TabRespawn:CreateSlider({
     Name = "🎚️ Set Jumlah Ikan per Respawn",
-    Range = {100, 5000}, -- minimal 100, maksimal 5000
+    Range = {100, 5000},
     Increment = 100,
     CurrentValue = caughtThreshold,
     Callback = function(Value)
         caughtThreshold = math.floor(Value)
-
-        -- kalau sebelumnya ada delay aktif, batalkan dulu
         if sliderNotifyDelay then
             task.cancel(sliderNotifyDelay)
         end
-
-        -- set delay baru 2 detik setelah terakhir geser
         sliderNotifyDelay = task.delay(2, function()
             Rayfield:Notify({
                 Title = "🎣 Batas Ikan Diubah",
@@ -1402,29 +1621,173 @@ TabRespawn:CreateSlider({
 })
 
 
--- loop utama untuk cek penambahan ikan
-task.spawn(function()
-    lastCaught = AllTimeCaught.Value
-    while task.wait(5) do
-        if not fishBasedRespawnEnabled then continue end
+------------------------------------------------------------
+-- 💫 ANTI-STUCK SYSTEM (RESET DENGAN TOGGLE AUTO-REFRESH)
+------------------------------------------------------------
+local antiStuckEnabled = false
+local noRareLimit = 300
+local fishSinceLastRare = 0
+local lastCaughtForStuck = AllTimeCaught.Value
+local stuckProgressLabel = TabRespawn:CreateLabel("💫 Ikan tanpa rare: -- / --")
 
-        local nowCaught = AllTimeCaught.Value
-        local diff = nowCaught - lastCaught
+-- Simpan referensi toggle biar bisa diubah dari script
+local toggleAntiStuck
 
-        if diff >= caughtThreshold then
-            Rayfield:Notify({
-                Title = "♻️ Auto Respawn Triggered",
-                Content = string.format("Menangkap %d ikan, respawn otomatis dimulai 🐟", diff),
-                Duration = 4
-            })
-            RespawnNow()
-            lastCaught = nowCaught
-        end
-    end
+------------------------------------------------------------
+-- 🧩 Fungsi Aktifkan/Matikan Anti-Stuck (biar bisa dipanggil internal)
+------------------------------------------------------------
+local function SetAntiStuckState(state)
+	antiStuckEnabled = state
+	if state then
+		fishSinceLastRare = 0
+		lastCaughtForStuck = AllTimeCaught.Value
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+	else
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: -- / --")
+	end
+end
+
+------------------------------------------------------------
+-- 🧿 TOGGLE UTAMA
+------------------------------------------------------------
+toggleAntiStuck = TabRespawn:CreateToggle({
+	Name = "💫 Aktifkan Anti-Stuck (No Rare Respawn)",
+	CurrentValue = false,
+	Callback = function(v)
+		SetAntiStuckState(v)
+		if v then
+			Rayfield:Notify({
+				Title = "💫 Anti-Stuck Aktif",
+				Content = string.format("Respawn jika tidak ada rare dalam %d ikan 🐟", noRareLimit),
+				Duration = 4
+			})
+		else
+			Rayfield:Notify({
+				Title = "🧊 Anti-Stuck Dimatikan",
+				Content = "Pantauan ikan tanpa rare dihentikan 💋",
+				Duration = 3
+			})
+		end
+	end
+})
+------------------------------------------------------------
+-- 🎚️ SLIDER
+------------------------------------------------------------
+TabRespawn:CreateSlider({
+	Name = "🐟 Batas Ikan Tanpa Rare Sebelum Respawn",
+	Range = {100, 5000},
+	Increment = 100,
+	CurrentValue = noRareLimit,
+	Callback = function(v)
+		noRareLimit = math.floor(v)
+
+		if antiStuckEnabled then
+			stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+		end
+
+		-- ⏳ Tambahkan delay 2 detik sebelum notifikasi muncul
+		task.spawn(function()
+			task.wait(2)
+			Rayfield:Notify({
+				Title = "🐟 Batas Diubah",
+				Content = "Respawn otomatis jika tidak ada rare dalam " .. noRareLimit .. " ikan.",
+				Duration = 3
+			})
+		end)
+	end
+})
+
+------------------------------------------------------------
+-- 🔁 LOOP ANTI-STUCK (REALTIME FIX)
+------------------------------------------------------------
+local function StartAntiStuckLoop()
+	-- Hentikan loop lama kalau ada
+	if _G.AntiStuckLoop then
+		task.cancel(_G.AntiStuckLoop)
+	end
+
+	-- Reset label & counter dulu
+	fishSinceLastRare = 0
+	lastCaughtForStuck = AllTimeCaught.Value
+	stuckProgressLabel:Set(string.format("💫 Ikan tanpa rare: %d / %d (0%%)", fishSinceLastRare, noRareLimit))
+
+	-- 🧠 Pastikan kita dengarkan event perubahan jumlah ikan
+	if _G.AntiStuckConn then
+		_G.AntiStuckConn:Disconnect()
+	end
+
+	_G.AntiStuckConn = AllTimeCaught.Changed:Connect(function(newValue)
+		if not antiStuckEnabled then return end
+
+		local diff = newValue - lastCaughtForStuck
+		if diff <= 0 then return end
+
+		fishSinceLastRare += diff
+		lastCaughtForStuck = newValue
+
+		local percent = math.min(100, math.floor((fishSinceLastRare / noRareLimit) * 100))
+		stuckProgressLabel:Set(string.format("💫 Ikan tanpa rare: %d / %d (%d%%)", fishSinceLastRare, noRareLimit, percent))
+
+		-- Jika sudah lewat batas dan belum dapat rare → respawn
+		if fishSinceLastRare >= noRareLimit then
+			if (rarityCounts.Legendary < legendThreshold) and (rarityCounts.Mythic < mythicThreshold) then
+				Rayfield:Notify({
+					Title = "😴 Tidak Ada Rare",
+					Content = string.format("Sudah %d ikan tanpa Legendary/Mythic, respawn otomatis 🌀", noRareLimit),
+					Duration = 4
+				})
+				RespawnNow() -- bisa juga diganti RespawnNowRandom() kalau mau random
+				task.wait(0.5)
+				fishSinceLastRare = 0
+				lastCaughtForStuck = AllTimeCaught.Value
+			else
+				fishSinceLastRare = 0
+				lastCaughtForStuck = AllTimeCaught.Value
+				stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+			end
+		end
+	end)
+
+	Rayfield:Notify({
+		Title = "💫 Anti-Stuck Aktif",
+		Content = "Sistem pemantau ikan tanpa rare sedang berjalan real-time 🐟",
+		Duration = 4
+	})
+end
+
+
+------------------------------------------------------------
+-- 🧠 Listener: Mulai ulang loop setelah respawn
+------------------------------------------------------------
+player.CharacterAdded:Connect(function(newChar)
+	if not antiStuckEnabled then return end
+
+	task.spawn(function()
+		newChar:WaitForChild("HumanoidRootPart", 10)
+		task.wait(1)
+
+		fishSinceLastRare = 0
+		lastCaughtForStuck = AllTimeCaught.Value
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+
+		Rayfield:Notify({
+			Title = "🔄 Anti-Stuck Reset",
+			Content = "Counter direset & loop dimulai ulang setelah respawn ♻️",
+			Duration = 3
+		})
+
+		StartAntiStuckLoop()
+	end)
 end)
 
 ------------------------------------------------------------
--- ⏱️ Timer Countdown Loop (format jam-menit-detik)
+-- 🧩 Jalankan loop pertama kali
+------------------------------------------------------------
+StartAntiStuckLoop()
+
+
+------------------------------------------------------------
+-- ⏱️ Timer Countdown Loop
 ------------------------------------------------------------
 local function startCountdown()
 	task.spawn(function()
@@ -1439,7 +1802,7 @@ local function startCountdown()
 		if autoRespawnEnabled then
 			RespawnNow()
 			task.wait(3)
-			startCountdown() -- restart countdown lagi
+			startCountdown()
 		end
 	end)
 end
@@ -1476,48 +1839,18 @@ TabRespawn:CreateToggle({
 })
 
 ------------------------------------------------------------
--- 🎹 Hotkey [R] untuk Toggle Auto Respawn
-------------------------------------------------------------
-local UserInputService = game:GetService("UserInputService")
-UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then return end
-	if input.KeyCode == Enum.KeyCode.R then
-		autoRespawnEnabled = not autoRespawnEnabled
-		if autoRespawnEnabled then
-			Rayfield:Notify({
-				Title = "♻️ Auto Respawn Aktif [R]",
-				Content = string.format("Respawn tiap %.0f menit 😴", respawnInterval / 60),
-				Duration = 3
-			})
-			startCountdown()
-		else
-			countdownLabel:Set("🕐 Next respawn in: --")
-			Rayfield:Notify({
-				Title = "💤 Auto Respawn Dimatikan [R]",
-				Content = "Respawn otomatis dihentikan 💋",
-				Duration = 3
-			})
-		end
-	end
-end)
-
-------------------------------------------------------------
--- ⏱️ Interval Respawn Slider (1–300 menit, anti-spam)
+-- ⏱️ Interval Respawn Slider
 ------------------------------------------------------------
 TabRespawn:CreateSlider({
 	Name = "⏱️ Interval Respawn (menit)",
-	Range = {1, 300}, -- ✅ dari 1 sampai 300 menit
+	Range = {1, 300},
 	Increment = 1,
 	CurrentValue = respawnInterval / 60,
 	Callback = function(Value)
 		respawnInterval = Value * 60
-
-		-- Batalkan delay sebelumnya kalau user masih geser
 		if sliderDelayTask then
 			task.cancel(sliderDelayTask)
 		end
-
-		-- Tunggu 2 detik baru tampilkan notif (anti-spam)
 		sliderDelayTask = task.delay(2, function()
 			Rayfield:Notify({
 				Title = "⏱️ Interval Diperbarui",
@@ -1566,18 +1899,12 @@ local teleportList = {
     {-80.68,3.26,2874.68,28.7},{-168.03,3.26,2961.94,231.4},{-214.13,3.26,2909.88,90.5},
     {-107.88,3.26,2848.26,277.8},{-108.14,32.23,2847.89,258.5},{-86.81,18.53,2834.54,181.4},
     {-86.88,18.53,2814.65,358.6},{-175.75,3.26,2775.72,47.8},{39.09,3.22,2762.25,8.0},
-    {85.93,9.57,2691.10,93.2},{2123.33,79.51,3335.87,348.6},{2128.53,79.78,3267.80,159.1},
-    {2104.61,81.03,3295.90,258.8},{2104.35,80.31,3326.84,315.6},{2163.84,79.92,3325.51,46.8},
-    {1824.03,3.43,2983.64,60.4},{1929.49,2.32,2907.16,121.3},{1869.37,3.24,2907.37,181.6},
-    {1810.33,3.58,2899.24,171.9},{1733.86,3.40,2910.08,208.4},{1680.43,3.35,2976.32,255.5},
-    {1664.24,3.91,3031.37,210.7},{1652.88,3.42,3130.08,332.4},{1730.93,7.87,3120.54,91.0},
-    {1827.61,4.16,3185.84,137.4},{1904.84,3.21,3233.55,128.1},{1850.18,3.34,3271.13,345.8},
-    {1781.24,3.59,3280.94,16.7},{1699.87,3.99,3244.67,315.5},{-2110.59,6.27,3689.77,342.6},
-    {-2095.57,6.27,3654.41,148.1},{-2002.13,4.03,3682.70,312.2},{-2012.50,5.77,3756.10,165.9},
+    {85.93,9.57,2691.10,93.2},{-2110.59,6.27,3689.77,342.6},{-2095.57,6.27,3654.41,148.1},{-2002.13,4.03,3682.70,312.2},{-2012.50,5.77,3756.10,165.9},
     {-2043.80,4.75,3819.17,31.5},{-2054.07,9.00,3777.46,175.5},{-2110.96,6.33,3813.89,275.1},
     {-2071.43,7.61,3845.78,28.9},{-2151.83,2.38,3670.99,29.3},{-2164.80,2.83,3639.15,220.1},
     {-1539.16,2.87,1916.74,190.6},{-1493.22,3.50,1915.87,152.1},{-1557.82,8.74,1797.09,35.6},
-    {-1635.25,8.13,1874.11,89.3}
+    {-1635.25,8.13,1874.11,75.8},{-2146.44,53.49,3676.09,1.2},{-2175.29,53.49,3637.36,247.3},
+	{-2129.36,53.49,3633.35,139.4}
 }
 
 ------------------------------------------------------------
@@ -1603,18 +1930,37 @@ local isRespawningRandom = false
 -- flag untuk Mode Combo (biar notifnya gak spam)
 local waitingComboNotifiedRandom = false
 
+
+-- ✅ Inisialisasi Remote & Fungsi Toggle
+local Autofish = GetNetRemote("RF/UpdateAutoFishingState")
+local CurrentValueRandom = false
+
+local function ToggleAutoFishing(state)
+    pcall(function()
+        Autofish:InvokeServer(state)
+        CurrentValueRandom = state
+        print("[AutoFishing Random]", state and "ON 🎣" or "OFF 💤")
+    end)
+end
+
 ------------------------------------------------------------
--- ♻️ Respawn 2x + Jual Ikan + Teleport Random
+-- 🎣 Fungsi RespawnNowRandom (Dua Kali Respawn + Teleport Random + Reset)
 ------------------------------------------------------------
 local function RespawnNowRandom()
 	if isRespawningRandom then return end
 	isRespawningRandom = true
 
 	task.spawn(function()
+		------------------------------------------------------------
+		-- ⛔ Matikan AutoFishing saat proses respawn mulai
+		------------------------------------------------------------
+		task.spawn(function()
+			task.wait(2) -- kasih waktu dikit biar karakter kebentuk
+			ToggleAutoFishing(false)
+		end)
+
 		local willResume = Config and Config.AutoFishing
-		if StopAutoFish then
-			StopAutoFish()
-		end
+		if StopAutoFish then StopAutoFish() end
 
 		local hrp = safeGetHRP()
 		if not hrp then
@@ -1623,7 +1969,7 @@ local function RespawnNowRandom()
 			return
 		end
 
-		-- helper respawn
+		local lastCFrame = hrp.CFrame
 		local function doRespawnOnce(idx)
 			local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
 			if hum then hum.Health = 0 end
@@ -1633,11 +1979,11 @@ local function RespawnNowRandom()
 			Notify("♻️ Respawn (Random)", ("Respawn #%d selesai"):format(idx), 2)
 		end
 
-		-- Respawn pertama
+		-- Respawn #1
 		doRespawnOnce(1)
 		task.wait(0.3)
 
-		-- Jual ikan setelah respawn pertama
+		-- 💰 Jual ikan
 		local sell = GetNetRemote and GetNetRemote("RF/SellAllItems")
 		if sell then
 			pcall(function()
@@ -1647,18 +1993,18 @@ local function RespawnNowRandom()
 		end
 
 		task.wait(1)
-
-		-- Respawn kedua
 		doRespawnOnce(2)
 		task.wait(0.4)
 
-		-- Pilih spot teleport random
+		------------------------------------------------------------
+		-- 🚀 Teleport Random
+		------------------------------------------------------------
 		if #teleportList > 0 then
 			local spot = teleportList[math.random(1, #teleportList)]
 			local x = randomizeCoord(spot[1])
 			local y = randomizeCoord(spot[2])
 			local z = randomizeCoord(spot[3])
-			local rot = spot[4]
+			local rot = spot[4] or 0
 
 			local newChar = LocalPlayer.Character
 			local newHRP = newChar and newChar:FindFirstChild("HumanoidRootPart")
@@ -1672,7 +2018,9 @@ local function RespawnNowRandom()
 			Notify("⚠️ Gagal Teleport", "Daftar teleport kosong.", 3)
 		end
 
-		-- Equip rod lagi (kalau mau lanjut mancing)
+		------------------------------------------------------------
+		-- 🎣 Equip rod kembali
+		------------------------------------------------------------
 		task.wait(0.5)
 		local rs = game:GetService("ReplicatedStorage")
 		local equipRodEvent = rs.Packages._Index["sleitnick_net@0.2.0"].net["RE/EquipToolFromHotbar"]
@@ -1682,16 +2030,65 @@ local function RespawnNowRandom()
 			end)
 		end
 
-		-- reset counter rarity khusus tab ini
+		------------------------------------------------------------
+        -- ✅ Cross-check sebelum nyalakan AutoFishing lagi
+        ------------------------------------------------------------
+		task.wait(0.5)
+		local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			if CurrentValueRandom == true then
+				print("[AutoFishing Random] ⚠️ Masih ON sebelum re-enable — resetting state...")
+				ToggleAutoFishing(false)
+				task.wait(0.3)
+			end
+
+			ToggleAutoFishing(true)
+			Notify("🎣 AutoFishing", "AutoFishing kembali diaktifkan.", 3)
+		else
+			print("[AutoFishing Random] ❌ Gagal nyalain ulang — karakter belum siap.")
+			Notify("⚠️ AutoFishing", "Karakter belum siap untuk AutoFishing.", 3)
+		end
+
+		------------------------------------------------------------
+		-- 💫 Reset Counter Rare
+		------------------------------------------------------------
 		task.wait(0.2)
 		rarityCountsRandom = { Mythic = 0, Legendary = 0 }
-		if AllTimeCaught then
-			sessionStartCaught = AllTimeCaught.Value
+		sessionStartCaught = AllTimeCaught and AllTimeCaught.Value or 0
+
+		------------------------------------------------------------
+		-- 💫 Reset Anti-Stuck
+		------------------------------------------------------------
+		if antiStuckEnabled then
+			task.spawn(function()
+				task.wait(1)
+				fishSinceLastRare = 0
+				lastCaughtForStuck = AllTimeCaught and AllTimeCaught.Value or 0
+				print("[Anti-Stuck Reset Random] AllTimeCaught:", lastCaughtForStuck)
+				if stuckProgressLabel then
+					stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+				end
+				Rayfield:Notify({
+					Title = "🔄 Anti-Stuck Reset (Random)",
+					Content = "Jumlah ikan tanpa rare direset setelah respawn random ♻️",
+					Duration = 3
+				})
+			end)
+		end
+
+		------------------------------------------------------------
+		-- 🌟 Balik orientasi ke arah terakhir
+		------------------------------------------------------------
+		local newHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if newHRP and lastCFrame then
+			local x, y, z = lastCFrame:ToEulerAnglesYXZ()
+			newHRP.CFrame = CFrame.new(newHRP.Position) * CFrame.Angles(x, y, z)
 		end
 
 		isRespawningRandom = false
 	end)
 end
+
 
 ------------------------------------------------------------
 -- 🧠 Trigger Rarity (Versi RANDOM)
@@ -1723,7 +2120,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 
 	-- Mode 2 – Mythic
 	if enableMythicModeRandom and myt >= mythicThresholdRandom then
-		Notify("💎 Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
+		Notify("❤️‍🔥 Mythic Respawn (Random)", string.format("Mendapat %d Mythic – respawn!", myt), 3)
 		return respawnFunc()
 	end
 
@@ -1737,7 +2134,7 @@ local function HandleRarityTriggerRandom(counts, respawnFunc)
 	if enableComboModeRandom then
 		-- kalau Mythic > 1 sebelum L cukup → respawn langsung
 		if myt > 1 and leg < comboLegendNeededRandom then
-			Notify("💎 Mythic Priority (Random)",
+			Notify("❤️‍🔥 Mythic Priority (Random)",
 				string.format("Mendapat %d Mythic sebelum %d Legendary – respawn!", myt, comboLegendNeededRandom), 4)
 			waitingComboNotifiedRandom = false
 			return respawnFunc()
@@ -1789,7 +2186,7 @@ local function connectFishListenerRandom()
 			local totalRare = rarityCountsRandom.Mythic + rarityCountsRandom.Legendary
 			if rarityLabelRandom then
 				rarityLabelRandom:Set(string.format(
-					"🌟 Legendary: %d | 💎 Mythic: %d | 🎣 Total: %d",
+					"🌟 Legendary: %d | ❤️‍🔥 Mythic: %d | 🎣 Legendary + Mythic: %d",
 					rarityCountsRandom.Legendary,
 					rarityCountsRandom.Mythic,
 					totalRare
@@ -1815,7 +2212,7 @@ TabRespawnRandom:CreateSection("🐉 Auto Respawn Random by Rarity UID")
 -- 🏷️ Label Status Rarity
 ------------------------------------------------------------
 rarityLabelRandom = TabRespawnRandom:CreateLabel(
-	"🌟 Legendary: 0 | 💎 Mythic: 0 | 🎣 Total: 0"
+	"🌟 Legendary: 0 | ❤️‍🔥 Mythic: 0 | 🎣 Legendary + Mythic: 0"
 )
 
 ------------------------------------------------------------
@@ -1850,28 +2247,28 @@ TabRespawnRandom:CreateToggle({
 })
 
 ------------------------------------------------------------
--- 💎 Mode 2 – Mythic (Random)
+-- ❤️‍🔥 Mode 2 – Mythic (Random)
 ------------------------------------------------------------
 TabRespawnRandom:CreateSlider({
-	Name = "💎 Batas Mythic untuk Respawn (Random)",
+	Name = "❤️‍🔥 Batas Mythic untuk Respawn (Random)",
 	Range = {1, 10},
 	Increment = 1,
 	CurrentValue = mythicThresholdRandom,
 	Callback = function(v)
 		mythicThresholdRandom = v
-		Notify("💎 Threshold Mythic (Random) Diubah",
+		Notify("❤️‍🔥 Threshold Mythic (Random) Diubah",
 			string.format("Respawn saat mendapat %d Mythic", v), 3)
 	end
 })
 
 TabRespawnRandom:CreateToggle({
-	Name = "💎 Aktifkan Auto Respawn Mythic (Random)",
+	Name = "❤️‍🔥 Aktifkan Auto Respawn Mythic (Random)",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicModeRandom = v
 		rarityCountsRandom = { Mythic = 0, Legendary = 0 }
 		if v then
-			Notify("💎 Mode Mythic Random Aktif",
+			Notify("❤️‍🔥 Mode Mythic Random Aktif",
 				"Respawn random otomatis jika batas Mythic tercapai.", 4)
 		else
 			Notify("🧊 Mode Mythic Random Mati",
@@ -1884,7 +2281,7 @@ TabRespawnRandom:CreateToggle({
 -- 🐉 Mode 3 – 2 Mythic Before Legendary (Random)
 ------------------------------------------------------------
 TabRespawnRandom:CreateToggle({
-	Name = "🐉 Respawn jika dapat 2 Mythic sebelum Legendary penuh (Random)",
+	Name = "🐉 Respawn jika dapat Mythic sebelum Legendary penuh (Random)",
 	CurrentValue = false,
 	Callback = function(v)
 		enableMythicBeforeLegendaryModeRandom = v
@@ -1915,13 +2312,13 @@ TabRespawnRandom:CreateSlider({
 })
 
 TabRespawnRandom:CreateSlider({
-	Name = "💎 Jumlah Mythic Combo (Random)",
+	Name = "❤️‍🔥 Jumlah Mythic Combo (Random)",
 	Range = {1, 5},
 	Increment = 1,
 	CurrentValue = comboMythicNeededRandom,
 	Callback = function(v)
 		comboMythicNeededRandom = v
-		Notify("💎 Combo Mythic Random Diubah",
+		Notify("❤️‍🔥 Combo Mythic Random Diubah",
 			string.format("Dibutuhkan %d Mythic dalam combo (Random)", v), 3)
 	end
 })
@@ -2038,6 +2435,159 @@ task.spawn(function()
         end
     end
 end)
+
+
+------------------------------------------------------------
+-- 💫 ANTI-STUCK SYSTEM (RESET DENGAN TOGGLE AUTO-REFRESH)
+------------------------------------------------------------
+local antiStuckEnabled = false
+local noRareLimit = 300
+local fishSinceLastRare = 0
+local lastCaughtForStuck = AllTimeCaught.Value
+local stuckProgressLabel = TabRespawnRandom:CreateLabel("💫 Ikan tanpa rare: -- / --")
+
+-- Simpan referensi toggle biar bisa diubah dari script
+local toggleAntiStuck
+
+------------------------------------------------------------
+-- 🧩 Fungsi Aktifkan/Matikan Anti-Stuck (biar bisa dipanggil internal)
+------------------------------------------------------------
+local function SetAntiStuckState(state)
+	antiStuckEnabled = state
+	if state then
+		fishSinceLastRare = 0
+		lastCaughtForStuck = AllTimeCaught.Value
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+	else
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: -- / --")
+	end
+end
+
+------------------------------------------------------------
+-- 🧿 TOGGLE UTAMA
+------------------------------------------------------------
+toggleAntiStuck = TabRespawnRandom:CreateToggle({
+	Name = "💫 Aktifkan Anti-Stuck (No Rare Respawn)",
+	CurrentValue = false,
+	Callback = function(v)
+		SetAntiStuckState(v)
+		if v then
+			Rayfield:Notify({
+				Title = "💫 Anti-Stuck Aktif",
+				Content = string.format("Respawn jika tidak ada rare dalam %d ikan 🐟", noRareLimit),
+				Duration = 4
+			})
+		else
+			Rayfield:Notify({
+				Title = "🧊 Anti-Stuck Dimatikan",
+				Content = "Pantauan ikan tanpa rare dihentikan 💋",
+				Duration = 3
+			})
+		end
+	end
+})
+
+------------------------------------------------------------
+-- 🎚️ SLIDER
+------------------------------------------------------------
+TabRespawnRandom:CreateSlider({
+	Name = "🐟 Batas Ikan Tanpa Rare Sebelum Respawn",
+	Range = {100, 5000},
+	Increment = 100,
+	CurrentValue = noRareLimit,
+	Callback = function(v)
+		noRareLimit = math.floor(v)
+
+		if antiStuckEnabled then
+			stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+		end
+
+		-- ⏳ Tambahkan delay 2 detik sebelum notifikasi muncul
+		task.spawn(function()
+			task.wait(2)
+			Rayfield:Notify({
+				Title = "🐟 Batas Diubah",
+				Content = "Respawn otomatis jika tidak ada rare dalam " .. noRareLimit .. " ikan.",
+				Duration = 3
+			})
+		end)
+	end
+})
+
+------------------------------------------------------------
+-- 🔁 LOOP ANTI-STUCK
+------------------------------------------------------------
+local function StartAntiStuckLoop()
+	if _G.AntiStuckLoop then
+		task.cancel(_G.AntiStuckLoop)
+	end
+
+	_G.AntiStuckLoop = task.spawn(function()
+		while task.wait(1) do
+			if not antiStuckEnabled then continue end
+
+			local now = AllTimeCaught.Value
+			local diff = now - lastCaughtForStuck
+
+			if diff > 0 then
+				fishSinceLastRare += diff
+				lastCaughtForStuck = now
+
+				local percent = math.min(100, math.floor((fishSinceLastRare / noRareLimit) * 100))
+				stuckProgressLabel:Set(string.format("💫 Ikan tanpa rare: %d / %d (%d%%)", fishSinceLastRare, noRareLimit, percent))
+
+				if fishSinceLastRare >= noRareLimit then
+					if (rarityCounts.Legendary < legendThreshold) and (rarityCounts.Mythic < mythicThreshold) then
+						Rayfield:Notify({
+							Title = "😴 Tidak Ada Rare",
+							Content = string.format("Sudah %d ikan tanpa Legendary/Mythic, respawn otomatis 🌀", noRareLimit),
+							Duration = 4
+						})
+
+						RespawnNow()
+
+						-- hentikan loop sementara agar gak konflik pas respawn
+						task.wait(0.2)
+						break
+					else
+						fishSinceLastRare = 0
+						lastCaughtForStuck = AllTimeCaught.Value
+						stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+					end
+				end
+			end
+		end
+	end)
+end
+
+------------------------------------------------------------
+-- 🧠 Listener: Mulai ulang loop setelah respawn
+------------------------------------------------------------
+player.CharacterAdded:Connect(function(newChar)
+	if not antiStuckEnabled then return end
+
+	task.spawn(function()
+		newChar:WaitForChild("HumanoidRootPart", 10)
+		task.wait(1)
+
+		fishSinceLastRare = 0
+		lastCaughtForStuck = AllTimeCaught.Value
+		stuckProgressLabel:Set("💫 Ikan tanpa rare: 0 / " .. noRareLimit .. " (0%)")
+
+		Rayfield:Notify({
+			Title = "🔄 Anti-Stuck Reset",
+			Content = "Counter direset & loop dimulai ulang setelah respawn ♻️",
+			Duration = 3
+		})
+
+		StartAntiStuckLoop()
+	end)
+end)
+
+------------------------------------------------------------
+-- 🧩 Jalankan loop pertama kali
+------------------------------------------------------------
+StartAntiStuckLoop()
 
 ------------------------------------------------------------
 -- ⏱️ Timer Countdown Loop (Random)
@@ -2422,24 +2972,84 @@ local function SafeTeleport(jobId, isPrivate)
 end
 
 ------------------------------------------------------------
--- 🔤 JOIN MANUAL VIA JOB ID
+-- 💻 AUTO REJOIN (Roblox PC Friendly)
+------------------------------------------------------------
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local retryDelay = 3
+local maxTries = 99999999
+local rejoining = false
+
+local function TryTeleport(jobId)
+	task.spawn(function()
+		local success, err = pcall(function()
+			SafeTeleport(jobId, false)
+		end)
+
+		if not success then
+			warn("[Teleport Error]:", err)
+			if tostring(err):find("772") or tostring(err):find("full") then
+				Rayfield:Notify({
+					Title = "⚠️ Server Penuh",
+					Content = "Server penuh (Error 772). Coba lagi dalam " .. retryDelay .. " detik 💫",
+					Duration = 3
+				})
+			else
+				Rayfield:Notify({
+					Title = "❌ Teleport Gagal",
+					Content = "Error: " .. tostring(err),
+					Duration = 4
+				})
+			end
+			task.wait(retryDelay)
+			TryTeleport(jobId) -- 🔁 loop otomatis
+		end
+	end)
+end
+
+-- 🧠 Tambahan event handler untuk Roblox PC
+TeleportService.TeleportInitFailed:Connect(function(player, result)
+	if not rejoining then
+		rejoining = true
+		Rayfield:Notify({
+			Title = "🚫 Teleport Gagal (PC)",
+			Content = "Kode error: " .. tostring(result) .. " | Coba lagi dalam " .. retryDelay .. " detik 💪",
+			Duration = 4
+		})
+		task.wait(retryDelay)
+		rejoining = false
+		TryTeleport(_G.JobID or "")
+	end
+end)
+
+------------------------------------------------------------
+-- 🧩 Input Field
 ------------------------------------------------------------
 TabTeleport:CreateInput({
-	Name = "🔤 Join via Job ID (Manual)",
+	Name = "🔤 Join via Job ID (Auto Retry PC)",
 	PlaceholderText = "Masukkan Job ID (contoh: 3d62b1a9...)",
 	RemoveTextAfterFocusLost = false,
 	Callback = function(jobId)
-		if jobId and #jobId > 5 then
-			SafeTeleport(jobId, false)
-		else
+		if not jobId or #jobId < 6 then
 			Rayfield:Notify({
 				Title = "Job ID Invalid ⚠️",
 				Content = "Masukkan minimal 6 karakter ya bubb 💋",
 				Duration = 3
 			})
+			return
 		end
+		_G.JobID = jobId
+		Rayfield:Notify({
+			Title = "🔁 Auto Join Aktif",
+			Content = "Akan terus mencoba masuk ke Job ID: " .. jobId .. " sampai berhasil 🚀",
+			Duration = 4
+		})
+		TryTeleport(jobId)
 	end
 })
+
 
 ------------------------------------------------------------
 -- 🔁 SMART REJOIN BUTTON (PUBLIC / PRIVATE AUTO)
@@ -2561,7 +3171,7 @@ TabServer:CreateButton({
 -- 🎣 Tab Statistic
 ------------------------------------------------------------
 -- Pantau Isi Tas & Statistik Ikan
-local TabStatistic = Window:CreateTab("🎣 Tas & Statistik", 4483362458)
+local TabStatistic = Window:CreateTab("🎣 Tas & Statistik")
 
 -- Label awal
 local fishBagLabel = TabStatistic:CreateLabel("📦 Memuat data tas ikan...")
@@ -2629,3 +3239,11 @@ end)
 Notify("🎣 SC FISH IT by @diketjup", "", 5)
 
 -- End of script
+
+-- 5
+-- 3
+-- 2
+-- 1
+-- 1000
+-- 2000
+-- 60
