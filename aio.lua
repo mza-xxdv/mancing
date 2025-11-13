@@ -3061,58 +3061,44 @@ end
 ------------------------------------------------------------
 -- 💻 AUTO REJOIN (Roblox PC Friendly)
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 💠 Global Config
+------------------------------------------------------------
+_G.JobID = nil
+_G.AutoRetryTeleport = false
+
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local retryDelay = 3
-local maxTries = 99999999
-local rejoining = false
-
+------------------------------------------------------------
+-- 🚀 Fungsi Auto Retry
+------------------------------------------------------------
 local function TryTeleport(jobId)
 	task.spawn(function()
-		local success, err = pcall(function()
-			SafeTeleport(jobId, false)
-		end)
+		while _G.AutoRetryTeleport and _G.JobID do
+			pcall(function()
+				Rayfield:Notify({
+					Title = "🔁 Mencoba Join…",
+					Content = "Job ID: " .. jobId,
+					Duration = 2
+				})
+				
+				TeleportService:TeleportToPlaceInstance(
+					game.PlaceId,
+					jobId,
+					LocalPlayer
+				)
+			end)
 
-		if not success then
-			warn("[Teleport Error]:", err)
-			if tostring(err):find("772") or tostring(err):find("full") then
-				Rayfield:Notify({
-					Title = "⚠️ Server Penuh",
-					Content = "Server penuh (Error 772). Coba lagi dalam " .. retryDelay .. " detik 💫",
-					Duration = 3
-				})
-			else
-				Rayfield:Notify({
-					Title = "❌ Teleport Gagal",
-					Content = "Error: " .. tostring(err),
-					Duration = 4
-				})
-			end
-			task.wait(retryDelay)
-			TryTeleport(jobId) -- 🔁 loop otomatis
+			-- Delay antar percobaan
+			task.wait(5)
 		end
 	end)
 end
 
--- 🧠 Tambahan event handler untuk Roblox PC
-TeleportService.TeleportInitFailed:Connect(function(player, result)
-	if not rejoining then
-		rejoining = true
-		Rayfield:Notify({
-			Title = "🚫 Teleport Gagal (PC)",
-			Content = "Kode error: " .. tostring(result) .. " | Coba lagi dalam " .. retryDelay .. " detik 💪",
-			Duration = 4
-		})
-		task.wait(retryDelay)
-		rejoining = false
-		TryTeleport(_G.JobID or "")
-	end
-end)
-
 ------------------------------------------------------------
--- 🧩 Input Field
+-- 🔤 Input Job ID
 ------------------------------------------------------------
 TabTeleport:CreateInput({
 	Name = "🔤 Join via Job ID (Auto Retry PC)",
@@ -3127,15 +3113,56 @@ TabTeleport:CreateInput({
 			})
 			return
 		end
+		
 		_G.JobID = jobId
+
 		Rayfield:Notify({
-			Title = "🔁 Auto Join Aktif",
-			Content = "Akan terus mencoba masuk ke Job ID: " .. jobId .. " sampai berhasil 🚀",
-			Duration = 4
+			Title = "🎯 Job ID Diset",
+			Content = "Sekarang tinggal aktifin Auto Retry ya, bubb 😏",
+			Duration = 3
 		})
-		TryTeleport(jobId)
 	end
 })
+
+------------------------------------------------------------
+-- 🔘 Toggle Auto Retry On/Off
+------------------------------------------------------------
+TabTeleport:CreateToggle({
+	Name = "🔁 Auto Retry Teleport",
+	CurrentValue = false,
+	Flag = "AutoRetryTeleport",
+	Callback = function(state)
+		_G.AutoRetryTeleport = state
+
+		if state then
+			if not _G.JobID then
+				Rayfield:Notify({
+					Title = "⚠️ Tidak Ada Job ID",
+					Content = "Masukkan Job ID dulu ya bubb 😏",
+					Duration = 3
+				})
+				_G.AutoRetryTeleport = false
+				return
+			end
+
+			Rayfield:Notify({
+				Title = "🔁 Auto Retry Aktif",
+				Content = "Akan mencoba masuk terus ke Job ID: " .. _G.JobID,
+				Duration = 4
+			})
+
+			TryTeleport(_G.JobID)
+
+		else
+			Rayfield:Notify({
+				Title = "🛑 Auto Retry Dimatikan",
+				Content = "Berhenti mencoba join.",
+				Duration = 3
+			})
+		end
+	end
+})
+
 
 
 ------------------------------------------------------------
