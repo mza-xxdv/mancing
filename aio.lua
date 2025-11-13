@@ -447,10 +447,11 @@ local UserSettings = UserSettings():GetService("UserGameSettings")
 
 local RenderingEnabled = true
 local DarkOverlay = nil
+local FullBlackOverlay = nil
 
---------------------------------------------------------------------
--- 🌑 Tambahan: Full Black Screen Overlay (super gelap)
---------------------------------------------------------------------
+--========================================--
+-- 🌑 OVERLAY TAMBAHAN (Super Black Screen)
+--========================================--
 local function CreateFullBlackOverlay()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "FullBlackOverlay"
@@ -470,13 +471,11 @@ local function CreateFullBlackOverlay()
 	return gui
 end
 
-
 --========================================--
 -- 🔥 FUNGSI OPTIMASI TAMBAHAN
 --========================================--
 local function ApplyPerformanceBoost(enable)
 	if enable then
-		-- Matikan efek berat
 		for _, effect in pairs(Lighting:GetChildren()) do
 			if effect:IsA("BloomEffect") 
 			or effect:IsA("DepthOfFieldEffect")
@@ -486,23 +485,16 @@ local function ApplyPerformanceBoost(enable)
 			end
 		end
 
-		-- Turunkan kualitas grafik
 		pcall(function()
 			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
 		end)
 
-		-- Matikan shadow
 		Lighting.GlobalShadows = false
-
-		-- Render mesh LOD terendah
 		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Low
-
-		-- Kurangi dekorasi terrain
 		settings().Rendering.TerrainDecoration = false
 
 		print("[Performance Mode] Ultra Low Graphics Applied ✔")
 	else
-		-- Kembali ke normal bila perlu
 		pcall(function()
 			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.Automatic
 		end)
@@ -512,8 +504,8 @@ local function ApplyPerformanceBoost(enable)
 		settings().Rendering.TerrainDecoration = true
 
 		for _, effect in pairs(Lighting:GetChildren()) do
-			if effect:IsA("BloomEffect") or effect:IsA("DepthOfFieldEffect") or
-				effect:IsA("SunRaysEffect") or effect:IsA("ColorCorrectionEffect") then
+			if effect:IsA("BloomEffect") or effect:IsA("DepthOfFieldEffect")
+			or effect:IsA("SunRaysEffect") or effect:IsA("ColorCorrectionEffect") then
 				effect.Enabled = true
 			end
 		end
@@ -525,7 +517,6 @@ end
 --========================================--
 -- 🌑 TOGGLE 3D RENDERING + DARK SCREEN
 --========================================--
-
 local function ToggleRendering(state)
 	RenderingEnabled = state
 
@@ -534,13 +525,7 @@ local function ToggleRendering(state)
 	if not state then
 		ApplyPerformanceBoost(true)
 
-		-- 🔥 Tambahan overlay super hitam
-		if not FullBlackOverlay then
-			FullBlackOverlay = CreateFullBlackOverlay()
-		else
-			FullBlackOverlay.Enabled = true
-		end
-
+		-- Overlay hitam bawaan
 		if not DarkOverlay then
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "DarkOverlay"
@@ -552,13 +537,20 @@ local function ToggleRendering(state)
 			local frame = Instance.new("Frame")
 			frame.Size = UDim2.new(1, 0, 1, 0)
 			frame.BackgroundColor3 = Color3.new(0, 0, 0)
-			frame.BorderSizePixel = 0
 			frame.BackgroundTransparency = 0
+			frame.BorderSizePixel = 0
 			frame.Parent = gui
 
 			DarkOverlay = gui
 		else
 			DarkOverlay.Enabled = true
+		end
+
+		-- 🔥 Overlay hitam total tambahan
+		if not FullBlackOverlay then
+			FullBlackOverlay = CreateFullBlackOverlay()
+		else
+			FullBlackOverlay.Enabled = true
 		end
 
 		Rayfield:Notify({
@@ -570,13 +562,13 @@ local function ToggleRendering(state)
 
 	else
 		ApplyPerformanceBoost(false)
-		
-		if FullBlackOverlay then
-			FullBlackOverlay.Enabled = false
-		end
 
 		if DarkOverlay then
 			DarkOverlay.Enabled = false
+		end
+
+		if FullBlackOverlay then
+			FullBlackOverlay.Enabled = false
 		end
 
 		Rayfield:Notify({
@@ -591,7 +583,6 @@ end
 --========================================--
 -- 🌙 TOGGLE DI RAYFIELD
 --========================================--
-
 TabAuto:CreateSection("📉 Disable 3D Rendering (Ultra Lite Mode)")
 
 TabAuto:CreateToggle({
@@ -602,6 +593,7 @@ TabAuto:CreateToggle({
 		ToggleRendering(not state)
 	end
 })
+
 
 --------------------------------------------------------------------
 -- 🔌 AUTO RECONNECT (Same Server First, Else New Server)
