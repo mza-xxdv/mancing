@@ -356,19 +356,32 @@ local startTime = 0
 -- 🧠 Fungsi simulasi aktivitas universal
 local function simulateActivity()
 	pcall(function()
-		-- metode universal (berfungsi di PC & Mobile)
+
+		-- ============================
+		-- 🔹 1. Touch Event ringan (Mobile)
+		-- ============================
+		if VirtualInputManager then
+			-- tap invisible, tidak menggerakkan apa pun
+			VirtualInputManager:SendTouchEvent(1, Vector2.new(5,5), 0, true, game, 1)
+			VirtualInputManager:SendTouchEvent(1, Vector2.new(5,5), 0, false, game, 1)
+		end
+
+		-- ============================
+		-- 🔹 2. VirtualUser Fallback (PC)
+		-- ============================
 		if VirtualUser then
 			VirtualUser:CaptureController()
 			VirtualUser:ClickButton2(Vector2.new())
 		end
 
-		-- metode tambahan buat mobile
-		if VirtualInputManager then
-			VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Unknown, false, game)
-			VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Unknown, false, game)
-		end
+		-- ============================
+		-- 🔹 3. "Micro heartbeat" ping
+		-- (tidak bergerak, tidak merender)
+		-- ============================
+		LocalPlayer.Idled:Fire()  -- reset idle timer langsung
 	end)
 end
+
 
 -- 🔁 Loop Anti-AFK utama
 local function AntiAFKLoop()
@@ -423,23 +436,82 @@ task.defer(function()
 	AntiAFKLoop()
 end)
 
-------------------------------------------------------------
--- 🕶️ 3D Rendering Toggle (AFK Dark Mode) by bubb 😏
-------------------------------------------------------------
+--------------------------------------------------------------------
+-- 🕶️ Ultra Low Rendering Mode (Dark AFK + Performance Boost)
+-- by bubb 😏
+--------------------------------------------------------------------
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local UserSettings = UserSettings():GetService("UserGameSettings")
 
 local RenderingEnabled = true
 local DarkOverlay = nil
 
+--========================================--
+-- 🔥 FUNGSI OPTIMASI TAMBAHAN
+--========================================--
+
+local function ApplyPerformanceBoost(enable)
+	if enable then
+		-- Matikan efek berat
+		for _, effect in pairs(Lighting:GetChildren()) do
+			if effect:IsA("BloomEffect") 
+			or effect:IsA("DepthOfFieldEffect")
+			or effect:IsA("SunRaysEffect")
+			or effect:IsA("ColorCorrectionEffect") then
+				effect.Enabled = false
+			end
+		end
+
+		-- Turunkan kualitas grafik
+		pcall(function()
+			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+		end)
+
+		-- Matikan shadow
+		Lighting.GlobalShadows = false
+
+		-- Render mesh LOD terendah
+		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Low
+
+		-- Kurangi dekorasi terrain
+		settings().Rendering.TerrainDecoration = false
+
+		print("[Performance Mode] Ultra Low Graphics Applied ✔")
+	else
+		-- Kembali ke normal bila perlu
+		pcall(function()
+			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.Automatic
+		end)
+
+		Lighting.GlobalShadows = true
+		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.High
+		settings().Rendering.TerrainDecoration = true
+
+		for _, effect in pairs(Lighting:GetChildren()) do
+			if effect:IsA("BloomEffect") or effect:IsA("DepthOfFieldEffect") or
+				effect:IsA("SunRaysEffect") or effect:IsA("ColorCorrectionEffect") then
+				effect.Enabled = true
+			end
+		end
+
+		print("[Performance Mode] Graphics Restored ✔")
+	end
+end
+
+--========================================--
+-- 🌑 TOGGLE 3D RENDERING + DARK SCREEN
+--========================================--
+
 local function ToggleRendering(state)
 	RenderingEnabled = state
 
-	-- 🔧 Matikan / Nyalakan 3D Rendering
 	RunService:Set3dRenderingEnabled(state)
 
-	-- 🌑 Buat overlay hitam biar layar terlihat gelap
 	if not state then
+		ApplyPerformanceBoost(true)
+
 		if not DarkOverlay then
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "DarkOverlay"
@@ -451,8 +523,8 @@ local function ToggleRendering(state)
 			local frame = Instance.new("Frame")
 			frame.Size = UDim2.new(1, 0, 1, 0)
 			frame.BackgroundColor3 = Color3.new(0, 0, 0)
-			frame.BackgroundTransparency = 0
 			frame.BorderSizePixel = 0
+			frame.BackgroundTransparency = 0
 			frame.Parent = gui
 
 			DarkOverlay = gui
@@ -461,14 +533,14 @@ local function ToggleRendering(state)
 		end
 
 		Rayfield:Notify({
-			Title = "🌑 Dark Mode Aktif",
-			Content = "3D rendering dimatikan. FPS maksimal & aman untuk AFK 🎣",
+			Title = "🌑 Dark AFK Mode",
+			Content = "Rendering dimatikan + Mode ringan maksimal aktif.",
 			Duration = 3
 		})
-		print("[Dark Mode] 3D Rendering OFF (layar gelap total)")
+		print("[Dark Mode] Rendering OFF + Boost ON")
 
 	else
-		RunService:Set3dRenderingEnabled(true)
+		ApplyPerformanceBoost(false)
 
 		if DarkOverlay then
 			DarkOverlay.Enabled = false
@@ -476,23 +548,28 @@ local function ToggleRendering(state)
 
 		Rayfield:Notify({
 			Title = "☀️ Rendering Aktif",
-			Content = "3D rendering dinyalakan kembali.",
+			Content = "Semua grafik dikembalikan normal.",
 			Duration = 3
 		})
-		print("[Dark Mode] 3D Rendering ON")
+		print("[Dark Mode] Rendering ON + Boost OFF")
 	end
 end
 
-TabAuto:CreateSection("📉 Disable 3D Rendering")
+--========================================--
+-- 🌙 TOGGLE DI RAYFIELD
+--========================================--
+
+TabAuto:CreateSection("📉 Disable 3D Rendering (Ultra Lite Mode)")
 
 TabAuto:CreateToggle({
-	Name = "Matikan 3D Rendering",
-	CurrentValue = false, -- default: rendering aktif
+	Name = "Super AFK Mode (Dark + Ultra Low Graphics)",
+	CurrentValue = false,
 	Flag = "RenderingToggle",
 	Callback = function(state)
 		ToggleRendering(not state)
 	end
 })
+
 
 ------------------------------------------------------------
 -- 🌍 TAB TELEPORT
@@ -685,7 +762,7 @@ local function getNextAdminEvent(nowT, nowEpoch)
 end
 
 -- 📍 Lokasi teleport Admin Event
-local adminEventCFrame = CFrame.new(6066.17, -578.59, 4716.69) * CFrame.Angles(0, math.rad(14.8), 0)
+local adminEventCFrame = CFrame.new(6040.46, -583.90, 4715.43) * CFrame.Angles(0, math.rad(354.2), 0)
 
 -- 🚀 Teleport ke Admin Event
 local function TeleportToAdminEvent()
@@ -703,8 +780,8 @@ local function TeleportToAdminEvent()
 	hrp.CFrame = adminEventCFrame
 	Notify("🎟️ Teleport Admin Event", "Kamu sudah sampai di lokasi event!", 3)
 
-	-- setelah 6 menit (360 detik), balik ke posisi awal
-	task.delay(320, function()
+	-- setelah bbrp menit (360 detik), balik ke posisi awal
+	task.delay(630, function()
 		if lastCFrameBeforeEvent and hrp then
 			pcall(function()
 				hrp.CFrame = lastCFrameBeforeEvent
@@ -725,13 +802,23 @@ task.spawn(function()
 		local diff = nextEventEpoch - nowEpoch
 		nextEventLabel:Set(string.format("Event Countdown: %s", formatHMS(diff)))
 
-		-- auto teleport 10 detik sebelum event
-		if AutoAdminEnabled and diff <= 10 then
+		-- 🕒 Auto teleport 5 detik sebelum event
+		if AutoAdminEnabled and diff <= 10 and diff > 0 then
+			-- keamanan biar gak teleport berkali-kali
+			AutoAdminEnabled = false
+			Notify("🎟️ Auto Admin Event", 3)
+			
+			task.wait(5)
 			TeleportToAdminEvent()
-			task.wait(20) -- biar gak spam
+			
+			-- aktifkan lagi otomatis setelah 2 menit (biar event berikutnya masih jalan)
+			task.delay(120, function()
+				AutoAdminEnabled = true
+			end)
 		end
 	end
 end)
+
 
 -- 🎛️ Toggle Auto Admin Event
 TabTeleport:CreateToggle({
@@ -740,7 +827,7 @@ TabTeleport:CreateToggle({
 	Callback = function(Value)
 		AutoAdminEnabled = Value
 		if Value then
-			Notify("🎟️ Auto Admin Event", "Akan otomatis teleport ke event dan balik setelah 6 menit.", 3)
+			Notify("🎟️ Auto Admin Event", "Akan otomatis teleport ke event.", 3)
 		else
 			Notify("💤 Auto Admin Event", "Mode otomatis dimatikan.", 3)
 		end
@@ -795,8 +882,8 @@ local RFPurchaseWeatherEvent = ReplicatedStorage
 local weatherOptions = {
 	{ Name = "Wind (10.000)", Value = "Wind", Price = 10000 },
 	{ Name = "Cloudy (20.000)", Value = "Cloudy", Price = 20000 },
-	{ Name = "Snow (15.000)", Value = "Snow", Price = 15000 },
 	{ Name = "Storm (35.000)", Value = "Storm", Price = 35000 },
+	{ Name = "Snow (15.000)", Value = "Snow", Price = 15000 },
 	{ Name = "Radiant (50.000)", Value = "Radiant", Price = 50000 },
 	{ Name = "Shark Hunt (300.000)", Value = "Shark Hunt", Price = 300000 },
 }
