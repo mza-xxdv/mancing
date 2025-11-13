@@ -448,10 +448,32 @@ local UserSettings = UserSettings():GetService("UserGameSettings")
 local RenderingEnabled = true
 local DarkOverlay = nil
 
+--------------------------------------------------------------------
+-- 🌑 Tambahan: Full Black Screen Overlay (super gelap)
+--------------------------------------------------------------------
+local function CreateFullBlackOverlay()
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "FullBlackOverlay"
+	gui.IgnoreGuiInset = true
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.Parent = PlayerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundColor3 = Color3.new(0, 0, 0)
+	frame.BackgroundTransparency = 0
+	frame.BorderSizePixel = 0
+	frame.ZIndex = 9999
+	frame.Parent = gui
+
+	return gui
+end
+
+
 --========================================--
 -- 🔥 FUNGSI OPTIMASI TAMBAHAN
 --========================================--
-
 local function ApplyPerformanceBoost(enable)
 	if enable then
 		-- Matikan efek berat
@@ -512,6 +534,13 @@ local function ToggleRendering(state)
 	if not state then
 		ApplyPerformanceBoost(true)
 
+		-- 🔥 Tambahan overlay super hitam
+		if not FullBlackOverlay then
+			FullBlackOverlay = CreateFullBlackOverlay()
+		else
+			FullBlackOverlay.Enabled = true
+		end
+
 		if not DarkOverlay then
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "DarkOverlay"
@@ -541,6 +570,10 @@ local function ToggleRendering(state)
 
 	else
 		ApplyPerformanceBoost(false)
+		
+		if FullBlackOverlay then
+			FullBlackOverlay.Enabled = false
+		end
 
 		if DarkOverlay then
 			DarkOverlay.Enabled = false
