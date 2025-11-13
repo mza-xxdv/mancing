@@ -570,6 +570,111 @@ TabAuto:CreateToggle({
 	end
 })
 
+--------------------------------------------------------------------
+-- 🔌 AUTO RECONNECT (Same Server First, Else New Server)
+-- by bubb 😏
+--------------------------------------------------------------------
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+_G.AutoReconnect = false
+_G.LastServerId = game.JobId -- simpan server saat ini saat script load
+
+--------------------------------------------------------------------
+-- 🌐 Cek server masih ada atau tidak
+--------------------------------------------------------------------
+local function CheckServerValid(jobId)
+	local ok, result = pcall(function()
+		return TeleportService:GetPlayerPlaceInstanceAsync(game.PlaceId, jobId)
+	end)
+
+	-- Kalau gagal fetch info = server sudah tidak valid
+	if not ok or not result then
+		return false
+	end
+
+	-- Kalau server full atau error
+	if result.MaxPlayers and result.CurrentPlayers and result.CurrentPlayers >= result.MaxPlayers then
+		return false
+	end
+
+	return true
+end
+
+--------------------------------------------------------------------
+-- 🔁 Fungsi utama reconnect
+--------------------------------------------------------------------
+local function AutoReconnectLoop()
+	task.spawn(function()
+		while _G.AutoReconnect do
+
+			-- tunggu sampai player ke-kick / connection putus
+			if LocalPlayer.Parent == nil then
+				Rayfield:Notify({
+					Title = "🔌 Reconnecting...",
+					Content = "Menunggu server lama…",
+					Duration = 3
+				})
+
+				local sameServer = CheckServerValid(_G.LastServerId)
+
+				if sameServer then
+					-- 🔄 Reconnect ke server yang sama
+					TeleportService:TeleportToPlaceInstance(
+						game.PlaceId,
+						_G.LastServerId,
+						LocalPlayer
+					)
+
+				else
+					-- 🆕 Server lama hilang → masuk server baru
+					Rayfield:Notify({
+						Title = "🌐 Server Lama Tidak Ada",
+						Content = "Masuk server baru ya bubb 😏",
+						Duration = 3
+					})
+
+					TeleportService:Teleport(game.PlaceId, LocalPlayer)
+				end
+
+				break
+			end
+
+			task.wait(2)
+		end
+	end)
+end
+
+--------------------------------------------------------------------
+-- 🔘 Toggle Auto Reconnect
+--------------------------------------------------------------------
+TabAuto:CreateToggle({
+	Name = "🔌 Auto Reconnect",
+	CurrentValue = false,
+	Flag = "AutoReconnectToggle",
+	Callback = function(state)
+		_G.AutoReconnect = state
+
+		if state then
+			_G.LastServerId = game.JobId -- update id saat ini
+			Rayfield:Notify({
+				Title = "🔌 Auto Reconnect Aktif",
+				Content = "Akan kembali ke server ini dulu, atau ke server baru jika hilang.",
+				Duration = 4
+			})
+			AutoReconnectLoop()
+		else
+			Rayfield:Notify({
+				Title = "🛑 Auto Reconnect Dimatikan",
+				Content = "Tidak akan reconnect otomatis lagi.",
+				Duration = 3
+			})
+		end
+	end
+})
+
+
 
 ------------------------------------------------------------
 -- 🌍 TAB TELEPORT
@@ -3061,9 +3166,6 @@ end
 ------------------------------------------------------------
 -- 💻 AUTO REJOIN (Roblox PC Friendly)
 ------------------------------------------------------------
-------------------------------------------------------------
--- 💠 Global Config
-------------------------------------------------------------
 _G.JobID = nil
 _G.AutoRetryTeleport = false
 
@@ -3092,7 +3194,7 @@ local function TryTeleport(jobId)
 			end)
 
 			-- Delay antar percobaan
-			task.wait(5)
+			task.wait(3)
 		end
 	end)
 end
