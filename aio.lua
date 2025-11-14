@@ -416,7 +416,7 @@ local GpuSuspended = false
 local FullBlackOverlay = nil
 
 ------------------------------------------------------------
--- 🌑 FULL BLACK OVERLAY (CoreGui, ZIndex Max)
+-- 🌑 FULL BLACK OVERLAY
 ------------------------------------------------------------
 local function CreateFullBlackOverlay()
     local gui = Instance.new("ScreenGui")
@@ -424,14 +424,14 @@ local function CreateFullBlackOverlay()
     gui.IgnoreGuiInset = true
     gui.ResetOnSpawn = false
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    gui.Parent = CoreGui   -- lebih stabil untuk blackout total
+    gui.Parent = CoreGui
 
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
     frame.BackgroundColor3 = Color3.new(0, 0, 0)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
-    frame.ZIndex = 99999999  -- ZIndex paling tinggi
+    frame.ZIndex = 99999999
     frame.Parent = gui
 
     return gui
@@ -439,7 +439,6 @@ end
 
 ------------------------------------------------------------
 -- 🧊 GPU SUSPEND PRO ENGINE
--- (Rendering OFF + Disable RenderStepped + Blackout)
 ------------------------------------------------------------
 local function GpuSuspend(enable)
     GpuSuspended = enable
@@ -451,16 +450,7 @@ local function GpuSuspend(enable)
         RunService:Set3dRenderingEnabled(false)
 
         ------------------------------------------------
-        -- ❄ Disable semua fungsi RenderStepped
-        ------------------------------------------------
-        pcall(function()
-            for _, conn in ipairs(getconnections(RunService.RenderStepped)) do
-                conn:Disable()
-            end
-        end)
-
-        ------------------------------------------------
-        -- ☁ Matikan efek GPU berat (post-processing)
+        -- ☁ Matikan efek GPU berat
         ------------------------------------------------
         for _, effect in ipairs(Lighting:GetChildren()) do
             if effect:IsA("PostEffect")
@@ -473,15 +463,13 @@ local function GpuSuspend(enable)
         end
 
         ------------------------------------------------
-        -- 🌑 Tambahkan blackout overlay (CoreGui)
+        -- 🌑 Blackout screen
         ------------------------------------------------
         if not FullBlackOverlay then
             FullBlackOverlay = CreateFullBlackOverlay()
         else
             FullBlackOverlay.Enabled = true
         end
-
-        -- print("[GPU SUSPEND PRO] GPU OFF total, script tetap berjalan 😎🔥")
 
     else
         ------------------------------------------------
@@ -490,27 +478,16 @@ local function GpuSuspend(enable)
         RunService:Set3dRenderingEnabled(true)
 
         ------------------------------------------------
-        -- 🔁 Aktifkan kembali semua event RenderStepped
-        ------------------------------------------------
-        pcall(function()
-            for _, conn in ipairs(getconnections(RunService.RenderStepped)) do
-                conn:Enable()
-            end
-        end)
-
-        ------------------------------------------------
         -- 🌞 Hilangkan blackout
         ------------------------------------------------
         if FullBlackOverlay then
             FullBlackOverlay.Enabled = false
         end
-
-        -- print("[GPU SUSPEND PRO] Rendering kembali normal 🌞")
     end
 end
 
 ------------------------------------------------------------
--- 🔘 RAYFIELD TOGGLE (HIDUP/MATI GPU SUSPEND)
+-- 🔘 RAYFIELD TOGGLE
 ------------------------------------------------------------
 TabAuto:CreateToggle({
     Name = "🔋 Disable 3D Rendering",
@@ -520,7 +497,6 @@ TabAuto:CreateToggle({
         GpuSuspend(value)
     end
 })
-
 
 --------------------------------------------------------------------
 -- 🔌 AUTO RECONNECT (Same Server First, Else New Server)
