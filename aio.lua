@@ -436,283 +436,146 @@ task.defer(function()
 	AntiAFKLoop()
 end)
 
--- --------------------------------------------------------------------
--- -- 🕶️ Ultra Low Rendering Mode (Dark AFK + Performance Boost)
--- -- by bubb 😏
--- --------------------------------------------------------------------
--- local RunService = game:GetService("RunService")
--- local Lighting = game:GetService("Lighting")
--- local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
--- local UserSettings = UserSettings():GetService("UserGameSettings")
-
--- local RenderingEnabled = true
--- local DarkOverlay = nil
--- local FullBlackOverlay = nil
-
--- --========================================--
--- -- 🌑 OVERLAY TAMBAHAN (Super Black Screen)
--- --========================================--
--- local function CreateFullBlackOverlay()
--- 	local gui = Instance.new("ScreenGui")
--- 	gui.Name = "FullBlackOverlay"
--- 	gui.IgnoreGuiInset = true
--- 	gui.ResetOnSpawn = false
--- 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
--- 	gui.Parent = PlayerGui
-
--- 	local frame = Instance.new("Frame")
--- 	frame.Size = UDim2.new(1, 0, 1, 0)
--- 	frame.BackgroundColor3 = Color3.new(0, 0, 0)
--- 	frame.BackgroundTransparency = 0
--- 	frame.BorderSizePixel = 0
--- 	frame.ZIndex = 9999
--- 	frame.Parent = gui
-
--- 	return gui
--- end
-
--- --========================================--
--- -- 🔥 FUNGSI OPTIMASI TAMBAHAN
--- --========================================--
--- local function ApplyPerformanceBoost(enable)
--- 	if enable then
--- 		for _, effect in pairs(Lighting:GetChildren()) do
--- 			if effect:IsA("BloomEffect") 
--- 			or effect:IsA("DepthOfFieldEffect")
--- 			or effect:IsA("SunRaysEffect")
--- 			or effect:IsA("ColorCorrectionEffect") then
--- 				effect.Enabled = false
--- 			end
--- 		end
-
--- 		pcall(function()
--- 			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
--- 		end)
-
--- 		Lighting.GlobalShadows = false
--- 		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Low
--- 		settings().Rendering.TerrainDecoration = false
-
--- 		print("[Performance Mode] Ultra Low Graphics Applied ✔")
--- 	else
--- 		pcall(function()
--- 			UserSettings.SavedQualityLevel = Enum.SavedQualitySetting.Automatic
--- 		end)
-
--- 		Lighting.GlobalShadows = true
--- 		settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.High
--- 		settings().Rendering.TerrainDecoration = true
-
--- 		for _, effect in pairs(Lighting:GetChildren()) do
--- 			if effect:IsA("BloomEffect") or effect:IsA("DepthOfFieldEffect")
--- 			or effect:IsA("SunRaysEffect") or effect:IsA("ColorCorrectionEffect") then
--- 				effect.Enabled = true
--- 			end
--- 		end
-
--- 		print("[Performance Mode] Graphics Restored ✔")
--- 	end
--- end
-
--- --========================================--
--- -- 🌑 TOGGLE 3D RENDERING + DARK SCREEN
--- --========================================--
--- local function ToggleRendering(state)
--- 	RenderingEnabled = state
--- 	local GpuSuspended = false
--- 	local FullBlackOverlay = nil
-
-
--- 	RunService:Set3dRenderingEnabled(state)
-
--- 	if not state then
--- 		ApplyPerformanceBoost(true)
-
--- 		-- Overlay hitam bawaan
--- 		if not DarkOverlay then
--- 			local gui = Instance.new("ScreenGui")
--- 			gui.Name = "DarkOverlay"
--- 			gui.IgnoreGuiInset = true
--- 			gui.ResetOnSpawn = false
--- 			gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
--- 			gui.Parent = PlayerGui
-
--- 			local frame = Instance.new("Frame")
--- 			frame.Size = UDim2.new(1, 0, 1, 0)
--- 			frame.BackgroundColor3 = Color3.new(0, 0, 0)
--- 			frame.BackgroundTransparency = 0
--- 			frame.BorderSizePixel = 0
--- 			frame.Parent = gui
-
--- 			DarkOverlay = gui
--- 		else
--- 			DarkOverlay.Enabled = true
--- 		end
-
--- 		-- 🔥 Overlay hitam total tambahan
--- 		if not FullBlackOverlay then
--- 			FullBlackOverlay = CreateFullBlackOverlay()
--- 		else
--- 			FullBlackOverlay.Enabled = true
--- 		end
-
--- 		Rayfield:Notify({
--- 			Title = "🌑 Dark AFK Mode",
--- 			Content = "Rendering dimatikan + Mode ringan maksimal aktif.",
--- 			Duration = 3
--- 		})
--- 		print("[Dark Mode] Rendering OFF + Boost ON")
-
--- 	else
--- 		ApplyPerformanceBoost(false)
-
--- 		if DarkOverlay then
--- 			DarkOverlay.Enabled = false
--- 		end
-
--- 		if FullBlackOverlay then
--- 			FullBlackOverlay.Enabled = false
--- 		end
-
--- 		Rayfield:Notify({
--- 			Title = "☀️ Rendering Aktif",
--- 			Content = "Semua grafik dikembalikan normal.",
--- 			Duration = 3
--- 		})
--- 		print("[Dark Mode] Rendering ON + Boost OFF")
--- 	end
--- end
-
--- --========================================--
--- -- 🌙 TOGGLE DI RAYFIELD
--- --========================================--
--- TabAuto:CreateSection("📉 Disable 3D Rendering (Ultra Lite Mode)")
-
--- TabAuto:CreateToggle({
--- 	Name = "Super AFK Mode (Dark + Ultra Low Graphics)",
--- 	CurrentValue = false,
--- 	Flag = "RenderingToggle",
--- 	Callback = function(state)
--- 		ToggleRendering(not state)
--- 	end
--- })
-
 --------------------------------------------------------------------
--- 🟣 GPU SUSPEND PRO (Ultra Battery Saver + Full Black Screen)
+-- 🔮 ULTRA MODE MASTER TOGGLE
+-- GPU Suspend + Shadow Anti-Detect + CPU Sleep + Blackout
 -- by bubb 😏🔥
 --------------------------------------------------------------------
 
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local GpuSuspended = false
-local FullBlackOverlay = nil
+local ULTRA_ENABLED = false
+local SleepLoop = false
+local ShadowLoop = false
 
-------------------------------------------------------------
--- 🌑 FULL BLACK OVERLAY (CoreGui, ZIndex Max)
-------------------------------------------------------------
-local function CreateFullBlackOverlay()
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "FullBlackOverlay"
-    gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    gui.Parent = CoreGui   -- lebih stabil untuk blackout total
+--------------------------------------------------------------------
+-- 🌀 Multi Blackout (2-layer)
+--------------------------------------------------------------------
+local function MultiBlackout(enable)
+	if enable then
+		-- Layer 1
+		local pg = Instance.new("ScreenGui", PlayerGui)
+		pg.Name = "Blackout1"
+		local f1 = Instance.new("Frame", pg)
+		f1.BackgroundColor3 = Color3.new(0,0,0)
+		f1.Size = UDim2.new(1,0,1,0)
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.new(0, 0, 0)
-    frame.BackgroundTransparency = 0
-    frame.BorderSizePixel = 0
-    frame.ZIndex = 99999999  -- ZIndex paling tinggi
-    frame.Parent = gui
+		-- Layer 2 (CoreGui)
+		local cg = Instance.new("ScreenGui", CoreGui)
+		cg.Name = "Blackout2"
+		local f2 = Instance.new("Frame", cg)
+		f2.BackgroundColor3 = Color3.new(0,0,0)
+		f2.Size = UDim2.new(1,0,1,0)
 
-    return gui
+	else
+		if CoreGui:FindFirstChild("Blackout2") then CoreGui.Blackout2:Destroy() end
+		if PlayerGui:FindFirstChild("Blackout1") then PlayerGui.Blackout1:Destroy() end
+	end
 end
 
-------------------------------------------------------------
--- 🧊 GPU SUSPEND PRO ENGINE
--- (Rendering OFF + Disable RenderStepped + Blackout)
-------------------------------------------------------------
-local function GpuSuspend(enable)
-    GpuSuspended = enable
-
-    if enable then
-        ------------------------------------------------
-        -- 🔌 Matikan semua rendering 3D
-        ------------------------------------------------
-        RunService:Set3dRenderingEnabled(false)
-
-        ------------------------------------------------
-        -- ❄ Disable semua fungsi RenderStepped
-        ------------------------------------------------
-        pcall(function()
-            for _, conn in ipairs(getconnections(RunService.RenderStepped)) do
-                conn:Disable()
-            end
-        end)
-
-        ------------------------------------------------
-        -- ☁ Matikan efek GPU berat (post-processing)
-        ------------------------------------------------
-        for _, effect in ipairs(Lighting:GetChildren()) do
-            if effect:IsA("PostEffect")
-            or effect:IsA("BloomEffect")
-            or effect:IsA("DepthOfFieldEffect")
-            or effect:IsA("SunRaysEffect")
-            or effect:IsA("ColorCorrectionEffect") then
-                effect.Enabled = false
-            end
-        end
-
-        ------------------------------------------------
-        -- 🌑 Tambahkan blackout overlay (CoreGui)
-        ------------------------------------------------
-        if not FullBlackOverlay then
-            FullBlackOverlay = CreateFullBlackOverlay()
-        else
-            FullBlackOverlay.Enabled = true
-        end
-
-        print("[GPU SUSPEND PRO] GPU OFF total, script tetap berjalan 😎🔥")
-
-    else
-        ------------------------------------------------
-        -- 🔄 Pulihkan rendering
-        ------------------------------------------------
-        RunService:Set3dRenderingEnabled(true)
-
-        ------------------------------------------------
-        -- 🔁 Aktifkan kembali semua event RenderStepped
-        ------------------------------------------------
-        pcall(function()
-            for _, conn in ipairs(getconnections(RunService.RenderStepped)) do
-                conn:Enable()
-            end
-        end)
-
-        ------------------------------------------------
-        -- 🌞 Hilangkan blackout
-        ------------------------------------------------
-        if FullBlackOverlay then
-            FullBlackOverlay.Enabled = false
-        end
-
-        print("[GPU SUSPEND PRO] Rendering kembali normal 🌞")
-    end
+--------------------------------------------------------------------
+-- ❄ CPU Sleep Mode
+--------------------------------------------------------------------
+local function StartCpuSleep()
+	SleepLoop = true
+	task.spawn(function()
+		while SleepLoop do
+			task.wait(0.03) -- CPU idle
+		end
+	end)
 end
 
-------------------------------------------------------------
--- 🔘 RAYFIELD TOGGLE (HIDUP/MATI GPU SUSPEND)
-------------------------------------------------------------
+local function StopCpuSleep()
+	SleepLoop = false
+end
+
+--------------------------------------------------------------------
+-- 🧿 Shadow GPU Anti-Detect
+--------------------------------------------------------------------
+local function StartShadow()
+	ShadowLoop = true
+	task.spawn(function()
+		while ShadowLoop do
+			RunService.RenderStepped:Wait() -- fake render ping
+			task.wait(1/30) -- fake FPS 30
+			local cam = workspace.CurrentCamera
+			if cam then
+				cam.CFrame = cam.CFrame * CFrame.Angles(0,0,0.00001)
+			end
+		end
+	end)
+end
+
+local function StopShadow()
+	ShadowLoop = false
+end
+
+--------------------------------------------------------------------
+-- 🔮 GPU OFF + Disable RenderStepped
+--------------------------------------------------------------------
+local function DisableRendering()
+	RunService:Set3dRenderingEnabled(false)
+
+	pcall(function()
+		for _, c in ipairs(getconnections(RunService.RenderStepped)) do
+			c:Disable()
+		end
+	end)
+
+	for _, e in ipairs(Lighting:GetChildren()) do
+		if e:IsA("PostEffect") or e:IsA("BloomEffect") or e:IsA("DepthOfFieldEffect") then
+			e.Enabled = false
+		end
+	end
+end
+
+local function RestoreRendering()
+	RunService:Set3dRenderingEnabled(true)
+
+	pcall(function()
+		for _, c in ipairs(getconnections(RunService.RenderStepped)) do
+			c:Enable()
+		end
+	end)
+end
+
+--------------------------------------------------------------------
+-- 💜 MASTER MODE
+--------------------------------------------------------------------
+local function UltraMode(enable)
+	ULTRA_ENABLED = enable
+
+	if enable then
+		print("[ULTRA MODE] ON — GPU off, CPU sleep, Shadow, blackout 😎🔥")
+
+		DisableRendering()
+		StartCpuSleep()
+		StartShadow()
+		MultiBlackout(true)
+
+	else
+		print("[ULTRA MODE] OFF — everything restored 🌞")
+
+		RestoreRendering()
+		StopCpuSleep()
+		StopShadow()
+		MultiBlackout(false)
+	end
+end
+
+--------------------------------------------------------------------
+-- 🔘 RAYFIELD TOGGLE
+--------------------------------------------------------------------
 TabAuto:CreateToggle({
-    Name = "🔋 GPU Suspend PRO (Ultra Hemat Baterai)",
-    CurrentValue = false,
-    Flag = "GpuSuspendToggle",
-    Callback = function(value)
-        GpuSuspend(value)
-    end
+	Name = "💜 ULTRA MODE (GPU+CPU Sleep + Shadow)",
+	CurrentValue = false,
+	Flag = "UltraModeToggle",
+	Callback = function(state)
+		UltraMode(state)
+	end
 })
 
 
