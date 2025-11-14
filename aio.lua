@@ -341,7 +341,7 @@ TabAuto:CreateSlider({
 
 
 ------------------------------------------------------------
--- 💫 ANTI-AFK UNLIMITED (PC + MOBILE + Anti-Detect)
+-- 💫 ANTI-AFK UNLIMITED (AUTO ON + PC & MOBILE SAFE)
 ------------------------------------------------------------
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
@@ -356,23 +356,22 @@ local AntiAFK_Active = false
 local function simulateActivity()
 	pcall(function()
 
-		-- 🔹 1. Mobile Tap kecil (tidak menggeser layar)
+		-- 🔹 1. Mobile tap micro
 		if VirtualInputManager then
 			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, true, game, 1)
 			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, false, game, 1)
 		end
 
-		-- 🔹 2. PC VirtualUser fallback
+		-- 🔹 2. VirtualUser fallback (PC)
 		if VirtualUser then
 			VirtualUser:CaptureController()
 			VirtualUser:ClickButton2(Vector2.new())
 		end
 
-		-- 🔹 3. Anti-Detect Camera “micro nudge”
-		-- (tidak terlihat, tapi Roblox anggap aktif)
+		-- 🔹 3. Micro camera heartbeat (anti-detect)
 		local cam = workspace.CurrentCamera
 		if cam then
-			cam.CFrame = cam.CFrame * CFrame.Angles(0,0,0.00001)
+			cam.CFrame = cam.CFrame * CFrame.Angles(0, 0, 0.00001)
 		end
 	end)
 end
@@ -382,14 +381,13 @@ local function AntiAFKLoop()
 	task.spawn(function()
 		while AntiAFK_Active do
 			task.wait(10) 
-			-- 10 detik = SUPER aman dari idle timeout
 			simulateActivity()
 		end
 	end)
 end
 
 -- 🔘 Toggle UI
-TabAuto:CreateToggle({
+local AntiAFK_Toggle = TabAuto:CreateToggle({
 	Name = "💤 Anti-AFK Unlimited",
 	CurrentValue = false,
 	Flag = "AntiAFK_Unlimited",
@@ -407,14 +405,13 @@ TabAuto:CreateToggle({
 	end
 })
 
-
--- 🧠 langsung aktif otomatis saat script jalan
+-- ⚡ AUTO ON setelah UI selesai dibuat
 task.defer(function()
 	AntiAFK_Active = true
 	AntiAFK_Toggle:Set(true)
-	-- Notify("💤 Anti-AFK", "Langsung aktif otomatis (20 menit).", 3)
 	AntiAFKLoop()
 end)
+
 
 --------------------------------------------------------------------
 -- 🟣 GPU SUSPEND PRO (Ultra Battery Saver + Full Black Screen)
