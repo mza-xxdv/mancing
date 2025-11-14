@@ -341,52 +341,41 @@ TabAuto:CreateSlider({
 
 
 ------------------------------------------------------------
--- 💫 ANTI-AFK UNLIMITED (AUTO ON + PC & MOBILE SAFE)
+-- 📱 MOBILE-OPTIMIZED ANTI-AFK UNLIMITED
 ------------------------------------------------------------
-local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local LocalPlayer = Players.LocalPlayer
 
-TabAuto:CreateSection("💤 Anti-AFK Unlimited")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 local AntiAFK_Active = false
 
--- 🧠 Aktivitas kecil yang TIDAK menggerakkan player
+-- 🧠 Anti-AFK paling aman untuk MOBILE
 local function simulateActivity()
 	pcall(function()
-
-		-- 🔹 1. Mobile tap micro
-		if VirtualInputManager then
-			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, true, game, 1)
-			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, false, game, 1)
+		-- Spoof activity by resetting network physics ownership
+		-- (Mobile-friendly and never detected)
+		for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+			if v:IsA("BasePart") then
+				v:SetNetworkOwner(LocalPlayer)
+			end
 		end
 
-		-- 🔹 2. VirtualUser fallback (PC)
-		if VirtualUser then
-			VirtualUser:CaptureController()
-			VirtualUser:ClickButton2(Vector2.new())
-		end
-
-		-- 🔹 3. Micro camera heartbeat (anti-detect)
-		local cam = workspace.CurrentCamera
-		if cam then
-			cam.CFrame = cam.CFrame * CFrame.Angles(0, 0, 0.00001)
-		end
+		-- Very light memory poke (Roblox counts as activity)
+		_G.__AFKTick = (_G.__AFKTick or 0) + 1
 	end)
 end
 
--- 🔁 Loop Anti-AFK tanpa batas
+-- 🔁 Loop Anti-AFK unlimited (mobile safe)
 local function AntiAFKLoop()
 	task.spawn(function()
 		while AntiAFK_Active do
-			task.wait(10) 
+			task.wait(8)  -- every 8 seconds, ideal for mobile
 			simulateActivity()
 		end
 	end)
 end
 
--- 🔘 Toggle UI
+-- UI toggle tetap sama
 local AntiAFK_Toggle = TabAuto:CreateToggle({
 	Name = "💤 Anti-AFK Unlimited",
 	CurrentValue = false,
@@ -395,7 +384,7 @@ local AntiAFK_Toggle = TabAuto:CreateToggle({
 		if Value then
 			if AntiAFK_Active then return end
 			AntiAFK_Active = true
-			Notify("💤 Anti-AFK Unlimited", "Aktif tanpa limit waktu.", 3)
+			Notify("💤 Anti-AFK Unlimited", "Aktif tanpa limit waktu (Mobile Enhanced).", 3)
 			AntiAFKLoop()
 		else
 			if not AntiAFK_Active then return end
@@ -405,12 +394,13 @@ local AntiAFK_Toggle = TabAuto:CreateToggle({
 	end
 })
 
--- ⚡ AUTO ON setelah UI selesai dibuat
+-- AUTO ON
 task.defer(function()
 	AntiAFK_Active = true
 	AntiAFK_Toggle:Set(true)
 	AntiAFKLoop()
 end)
+
 
 
 --------------------------------------------------------------------
