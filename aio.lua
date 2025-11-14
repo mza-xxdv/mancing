@@ -377,7 +377,7 @@ end
 
 -- UI toggle tetap sama
 local AntiAFK_Toggle = TabAuto:CreateToggle({
-	Name = "💤 Anti-AFK Unlimited",
+	Name = "💤 Anti-AFK",
 	CurrentValue = false,
 	Flag = "AntiAFK_Unlimited",
 	Callback = function(Value)
@@ -481,7 +481,7 @@ local function GpuSuspend(enable)
             FullBlackOverlay.Enabled = true
         end
 
-        print("[GPU SUSPEND PRO] GPU OFF total, script tetap berjalan 😎🔥")
+        -- print("[GPU SUSPEND PRO] GPU OFF total, script tetap berjalan 😎🔥")
 
     else
         ------------------------------------------------
@@ -505,7 +505,7 @@ local function GpuSuspend(enable)
             FullBlackOverlay.Enabled = false
         end
 
-        print("[GPU SUSPEND PRO] Rendering kembali normal 🌞")
+        -- print("[GPU SUSPEND PRO] Rendering kembali normal 🌞")
     end
 end
 
@@ -513,7 +513,7 @@ end
 -- 🔘 RAYFIELD TOGGLE (HIDUP/MATI GPU SUSPEND)
 ------------------------------------------------------------
 TabAuto:CreateToggle({
-    Name = "🔋 GPU Suspend PRO (Ultra Hemat Baterai)",
+    Name = "🔋 Disable 3D Rendering",
     CurrentValue = false,
     Flag = "GpuSuspendToggle",
     Callback = function(value)
