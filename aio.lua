@@ -619,7 +619,7 @@ local teleportLocations = {
     { Name = "Coral Reefs 🐠",  CFrame = CFrame.new(-3114.78198, 1.32066584, 2237.52295) },
     { Name = "Esoteric Depths 🌊",  CFrame = CFrame.new(3248.37109, -1301.53027, 1403.82727) },
     { Name = "Enchant Altar 🔮",  CFrame = CFrame.new(3234.54, -1302.85, 1399.92) },
-    { Name = "Crater Island 🌋",  CFrame = CFrame.new(1048.49, 3.15, 5018.23) },
+    { Name = "Crater Island 🌋",  CFrame = CFrame.new(987.96, 3.30, 5148.49) },
     { Name = "Lost Isle 🌀",  CFrame = CFrame.new(-3618.15698, 240.836655, -1317.45801) },
     { Name = "Weather Machine 🌦️",  CFrame = CFrame.new(-1488.51196, 83.1732635, 1876.30298) },
     { Name = "Tropical Grove 🌴",  CFrame = CFrame.new(-2095.34106, 197.199997, 3718.08008) },
