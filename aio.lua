@@ -341,92 +341,72 @@ TabAuto:CreateSlider({
 
 
 ------------------------------------------------------------
--- 💫 UNIVERSAL ANTI-AFK (PC & MOBILE SAFE)
+-- 💫 ANTI-AFK UNLIMITED (PC + MOBILE + Anti-Detect)
 ------------------------------------------------------------
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 
-TabAuto:CreateSection("💤 Anti-AFK")
+TabAuto:CreateSection("💤 Anti-AFK Unlimited")
 
 local AntiAFK_Active = false
-local startTime = 0
 
--- 🧠 Fungsi simulasi aktivitas universal
+-- 🧠 Aktivitas kecil yang TIDAK menggerakkan player
 local function simulateActivity()
 	pcall(function()
 
-		-- ============================
-		-- 🔹 1. Touch Event ringan (Mobile)
-		-- ============================
+		-- 🔹 1. Mobile Tap kecil (tidak menggeser layar)
 		if VirtualInputManager then
-			-- tap invisible, tidak menggerakkan apa pun
-			VirtualInputManager:SendTouchEvent(1, Vector2.new(5,5), 0, true, game, 1)
-			VirtualInputManager:SendTouchEvent(1, Vector2.new(5,5), 0, false, game, 1)
+			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, true, game, 1)
+			VirtualInputManager:SendTouchEvent(1, Vector2.new(3,3), 0, false, game, 1)
 		end
 
-		-- ============================
-		-- 🔹 2. VirtualUser Fallback (PC)
-		-- ============================
+		-- 🔹 2. PC VirtualUser fallback
 		if VirtualUser then
 			VirtualUser:CaptureController()
 			VirtualUser:ClickButton2(Vector2.new())
 		end
 
-		-- ============================
-		-- 🔹 3. "Micro heartbeat" ping
-		-- (tidak bergerak, tidak merender)
-		-- ============================
-		LocalPlayer.Idled:Fire()  -- reset idle timer langsung
-	end)
-end
-
-
--- 🔁 Loop Anti-AFK utama
-local function AntiAFKLoop()
-	task.spawn(function()
-		startTime = tick()
-		while AntiAFK_Active do
-			task.wait(1000) 
-			simulateActivity()
-
-			local elapsed = math.floor(tick() - startTime)
-			-- print(string.format("[AntiAFK] Aktivitas terkirim (%ds)", elapsed))
-
-			-- stop otomatis setelah 20 menit
-			if elapsed >= 1200 then
-				AntiAFK_Active = false
-				Notify("⏰ Anti-AFK", "Waktu 20 menit selesai, otomatis dimatikan.", 3)
-				break
-			end
+		-- 🔹 3. Anti-Detect Camera “micro nudge”
+		-- (tidak terlihat, tapi Roblox anggap aktif)
+		local cam = workspace.CurrentCamera
+		if cam then
+			cam.CFrame = cam.CFrame * CFrame.Angles(0,0,0.00001)
 		end
 	end)
 end
 
--- 🕹️ Toggle UI
-local AntiAFK_Toggle = TabAuto:CreateToggle({
-	Name = "💤 Anti-AFK Universal (20 Menit)",
-	CurrentValue = true, -- ✅ langsung aktif saat load
+-- 🔁 Loop Anti-AFK tanpa batas
+local function AntiAFKLoop()
+	task.spawn(function()
+		while AntiAFK_Active do
+			task.wait(10) 
+			-- 10 detik = SUPER aman dari idle timeout
+			simulateActivity()
+		end
+	end)
+end
+
+-- 🔘 Toggle UI
+TabAuto:CreateToggle({
+	Name = "💤 Anti-AFK Unlimited",
+	CurrentValue = false,
+	Flag = "AntiAFK_Unlimited",
 	Callback = function(Value)
 		if Value then
-			if AntiAFK_Active then
-				Notify("⚠️ Anti-AFK", "Sudah aktif.", 3)
-				return
-			end
+			if AntiAFK_Active then return end
 			AntiAFK_Active = true
-			Notify("💤 Anti-AFK", "Aktif selama 20 menit (PC & Mobile).", 3)
+			Notify("💤 Anti-AFK Unlimited", "Aktif tanpa limit waktu.", 3)
 			AntiAFKLoop()
 		else
-			if not AntiAFK_Active then
-				Notify("⚠️ Anti-AFK", "Belum aktif.", 3)
-				return
-			end
+			if not AntiAFK_Active then return end
 			AntiAFK_Active = false
-			Notify("🛑 Anti-AFK", "Berhasil dimatikan.", 3)
+			Notify("🛑 Anti-AFK", "Dimatikan.", 3)
 		end
 	end
 })
+
 
 -- 🧠 langsung aktif otomatis saat script jalan
 task.defer(function()
