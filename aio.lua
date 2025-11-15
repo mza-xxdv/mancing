@@ -341,65 +341,104 @@ TabAuto:CreateSlider({
 
 
 ------------------------------------------------------------
--- 📱 MOBILE-OPTIMIZED ANTI-AFK UNLIMITED
+-- 💜 ANTI-AFK HYBRID PRO (AUTO PC/MOBILE) by bubb 😏🔥
+-- Mobile = UI Pulse (safest)
+-- PC     = VirtualUser (strongest)
 ------------------------------------------------------------
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+
+TabAuto:CreateSection("💤 Anti-AFK Hybrid Pro")
 
 local AntiAFK_Active = false
+local IsMobile = UserInputService.TouchEnabled
 
--- 🧠 Anti-AFK paling aman untuk MOBILE
-local function simulateActivity()
+------------------------------------------------------------
+-- 🔮 MOBILE MODE (UI Focus Pulse)
+------------------------------------------------------------
+local function MobileActivity()
 	pcall(function()
-		-- Spoof activity by resetting network physics ownership
-		-- (Mobile-friendly and never detected)
-		for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-			if v:IsA("BasePart") then
-				v:SetNetworkOwner(LocalPlayer)
-			end
-		end
+		-- buka tutup menu super cepat → Roblox kira masih aktif
+		GuiService:SetMenuIsOpen(true)
+		task.wait(0.05)
+		GuiService:SetMenuIsOpen(false)
 
-		-- Very light memory poke (Roblox counts as activity)
-		_G.__AFKTick = (_G.__AFKTick or 0) + 1
+		-- memory ping
+		_G.__AFKMobile = (_G.__AFKMobile or 0) + 1
 	end)
 end
 
--- 🔁 Loop Anti-AFK unlimited (mobile safe)
+------------------------------------------------------------
+-- 🖥 PC MODE (VirtualUser)
+------------------------------------------------------------
+local function PCActivity()
+	pcall(function()
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.new()) -- aktivitas aman
+	end)
+end
+
+------------------------------------------------------------
+-- 🌐 HYBRID CONTROLLER
+------------------------------------------------------------
 local function AntiAFKLoop()
 	task.spawn(function()
 		while AntiAFK_Active do
-			task.wait(8)  -- every 8 seconds, ideal for mobile
-			simulateActivity()
+
+			if IsMobile then
+				-- mobile: tiap 12 detik → paling optimal
+				MobileActivity()
+				task.wait(12)
+			else
+				-- PC: tiap 10 detik → reset idle aman
+				PCActivity()
+				task.wait(10)
+			end
+
 		end
 	end)
 end
 
--- UI toggle tetap sama
+------------------------------------------------------------
+-- 🔘 TOGGLE UI
+------------------------------------------------------------
 local AntiAFK_Toggle = TabAuto:CreateToggle({
-	Name = "💤 Anti-AFK",
+	Name = "💤 Anti-AFK (Hybrid PC/Mobile)",
 	CurrentValue = false,
-	Flag = "AntiAFK_Unlimited",
+	Flag = "AntiAFK_Hybrid",
 	Callback = function(Value)
 		if Value then
 			if AntiAFK_Active then return end
 			AntiAFK_Active = true
-			Notify("💤 Anti-AFK Unlimited", "Aktif tanpa limit waktu (Mobile Enhanced).", 3)
+
+			if IsMobile then
+				Notify("💤 Anti-AFK", "Mobile-safe mode aktif.", 3)
+			else
+				Notify("💤 Anti-AFK", "PC VirtualUser mode aktif.", 3)
+			end
+
 			AntiAFKLoop()
+
 		else
-			if not AntiAFK_Active then return end
 			AntiAFK_Active = false
 			Notify("🛑 Anti-AFK", "Dimatikan.", 3)
 		end
 	end
 })
 
--- AUTO ON
+------------------------------------------------------------
+-- ⚡ AUTO ON after UI loaded
+------------------------------------------------------------
 task.defer(function()
 	AntiAFK_Active = true
 	AntiAFK_Toggle:Set(true)
 	AntiAFKLoop()
 end)
+
 
 
 
